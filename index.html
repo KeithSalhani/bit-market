@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🛒 Bit-Market — Autonomous Retail Simulation</title>
+  <style>
+    /* ── Reset & base ──────────────────────────────────────────────────────── */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: #1E272E;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 16px 8px 32px;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      color: #ECEFF1;
+    }
+
+    /* ── Header ────────────────────────────────────────────────────────────── */
+    header {
+      text-align: center;
+      margin-bottom: 14px;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      letter-spacing: 0.04em;
+      background: linear-gradient(90deg, #FF6B6B, #FECA57, #48DBFB, #FF9FF3);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    header p {
+      font-size: 0.85rem;
+      color: #B2BEC3;
+      margin-top: 4px;
+    }
+
+    /* ── Canvas wrapper ────────────────────────────────────────────────────── */
+    .canvas-wrapper {
+      position: relative;
+      border: 4px solid #FF6B6B;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow:
+        0 0 0 6px #FECA5740,
+        0 8px 40px rgba(0,0,0,0.6);
+    }
+
+    canvas {
+      display: block;
+      max-width: 100%;
+    }
+
+    /* ── Legend ────────────────────────────────────────────────────────────── */
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 20px;
+      margin-top: 14px;
+      justify-content: center;
+      font-size: 0.78rem;
+      color: #B2BEC3;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      display: inline-block;
+      border: 2px solid rgba(255,255,255,0.3);
+    }
+
+    /* ── Category key ──────────────────────────────────────────────────────── */
+    .category-key {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 16px;
+      margin-top: 10px;
+      justify-content: center;
+      font-size: 0.78rem;
+    }
+
+    .cat-badge {
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🛒 Bit-Market</h1>
+    <p>A fully autonomous retail simulation ecosystem — watch the AI lifeforms shop, restock, and check out in real time.</p>
+  </header>
+
+  <div class="canvas-wrapper">
+    <canvas id="bit-market-canvas"></canvas>
+  </div>
+
+  <div class="legend">
+    <span class="legend-item">
+      <span class="legend-dot" style="background:#FF6B6B"></span> Impulsive Shopper
+    </span>
+    <span class="legend-item">
+      <span class="legend-dot" style="background:#48DBFB"></span> Budget Shopper
+    </span>
+    <span class="legend-item">
+      <span class="legend-dot" style="background:#1DD1A1"></span> Explorer Shopper
+    </span>
+    <span class="legend-item">
+      <span class="legend-dot" style="background:#FECA57"></span> Rushed Shopper
+    </span>
+    <span class="legend-item">
+      <span class="legend-dot" style="background:#C8D6E5; border-radius:3px"></span> StoreBot 🤖
+    </span>
+    <span class="legend-item">
+      <span class="legend-dot" style="background:#6C5CE7"></span> Checkout Clerk 👤
+    </span>
+  </div>
+
+  <div class="category-key">
+    <span class="cat-badge" style="background:#FFB3B3;color:#B71C1C">🧸 Toys</span>
+    <span class="cat-badge" style="background:#FFE4A0;color:#7D4E00">🍭 Food</span>
+    <span class="cat-badge" style="background:#A9D0F5;color:#154360">📱 Electronics</span>
+    <span class="cat-badge" style="background:#ABEBC6;color:#145A32">⚽ Sports</span>
+  </div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

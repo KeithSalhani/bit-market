@@ -1,0 +1,20 @@
+{
+  "name": "bit-market",
+  "version": "1.0.0",
+  "description": "The Bit-Market is a complex, fully autonomous retail simulation ecosystem featuring distinct AI lifeforms, dynamic environmental interactions, and a Toy-Store visual style.",
+  "type": "module",
+  "scripts": {
+    "test": "node --experimental-vm-modules node_modules/.bin/jest",
+    "start": "npx serve . -p 3000"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ],
+    "transform": {}
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}
