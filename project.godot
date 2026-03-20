@@ -12,8 +12,7 @@ config_version=5
 
 config/name="bit-market"
 config/features=PackedStringArray("4.6", "Forward Plus")
-config/icon="res://icon.svg"
-run/main_scene="res://node_3d.tscn"
+config/icon="res://assets/characters/icon.svg"
 
 [physics]
 
