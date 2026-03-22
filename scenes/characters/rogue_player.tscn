@@ -1,0 +1,18 @@
+[gd_scene format=3 uid="uid://dsnaf52qc6ldf"]
+
+[ext_resource type="Script" uid="uid://rxciypb6kclh" path="res://src/movement/player_movement.gd" id="1_n7n3u"]
+[ext_resource type="PackedScene" uid="uid://sa3hex5bqyu5" path="res://scenes/characters/rogue.tscn" id="2_m4b3s"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_n7n3u"]
+
+[node name="CharacterBody3D" type="CharacterBody3D" unique_id=1643735131]
+script = ExtResource("1_n7n3u")
+
+[node name="Rogue" parent="." unique_id=1114203870 instance=ExtResource("2_m4b3s")]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1165980114]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.93965745, 0)
+shape = SubResource("CapsuleShape3D_n7n3u")
+
+[node name="Camera3D" type="Camera3D" parent="." unique_id=125886534]
+transform = Transform3D(-1, 0, -8.742278e-08, -2.4280265e-08, 0.9606581, 0.27773383, 8.398339e-08, 0.27773383, -0.9606581, 0, 2.3452196, -2.1789284)

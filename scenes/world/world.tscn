@@ -1,5 +1,7 @@
 [gd_scene format=3 uid="uid://dc73jdecolbdb"]
 
+[ext_resource type="PackedScene" uid="uid://dsnaf52qc6ldf" path="res://scenes/characters/rogue_player.tscn" id="1_dphjl"]
+
 [sub_resource type="PhysicsMaterial" id="PhysicsMaterial_4rhad"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_dphjl"]
@@ -21,3 +23,6 @@ shape = SubResource("BoxShape3D_dphjl")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="StaticBody3D" unique_id=446535284]
 mesh = SubResource("BoxMesh_1fp7r")
+
+[node name="CharacterBody3D" parent="." unique_id=1643735131 instance=ExtResource("1_dphjl")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.7544162, 0.4925254, -1.6594615)
