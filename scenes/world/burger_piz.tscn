@@ -1,0 +1,5 @@
+[gd_scene format=3 uid="uid://brxmlgtvxpeni"]
+
+[ext_resource type="PackedScene" uid="uid://7jqke2vebtbk" path="res://assets/map/BurgerPiz.glb" id="1_18hiw"]
+
+[node name="BurgerPiz2" unique_id=321264938 instance=ExtResource("1_18hiw")]
