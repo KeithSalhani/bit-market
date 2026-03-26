@@ -21,4 +21,4 @@ script = ExtResource("3_wsrv8")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30.65971, 0.6, -4.419981)
 
 [node name="DemoCamera3D" type="Camera3D" parent="." unique_id=95529586]
-transform = Transform3D(1, 0, 0, 0, 0.5533334, 0.8329599, 0, -0.8329599, 0.5533334, 27.29134, 12.157883, 35.517258)
+transform = Transform3D(1, 0, 0, 0, 0.5533334, 0.8329599, 0, -0.8329599, 0.5533334, 4.6897583, 3.006259, 13.7276535)
