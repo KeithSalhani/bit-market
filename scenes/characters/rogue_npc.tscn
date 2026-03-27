@@ -1,20 +1,20 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene format=3 uid="uid://c844m6dh18n82"]
 
-[ext_resource type="Script" path="res://src/movement/npc_movement.gd" id="1_0hfrv"]
+[ext_resource type="Script" uid="uid://bu7psljkxr33m" path="res://src/movement/npc_movement.gd" id="1_0hfrv"]
 [ext_resource type="PackedScene" uid="uid://sa3hex5bqyu5" path="res://scenes/characters/rogue.tscn" id="2_tg1r5"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_0hfrv"]
 
-[node name="RogueNPC" type="CharacterBody3D"]
+[node name="RogueNPC" type="CharacterBody3D" unique_id=420882618]
 script = ExtResource("1_0hfrv")
 
-[node name="Rogue" parent="." instance=ExtResource("2_tg1r5")]
+[node name="Rogue" parent="." unique_id=1260658782 instance=ExtResource("2_tg1r5")]
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=392112118]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.93965745, 0)
 shape = SubResource("CapsuleShape3D_0hfrv")
 
-[node name="NavigationAgent3D" type="NavigationAgent3D" parent="."]
+[node name="NavigationAgent3D" type="NavigationAgent3D" parent="." unique_id=1051854875]
 path_desired_distance = 0.35
 target_desired_distance = 0.35
 radius = 0.2
