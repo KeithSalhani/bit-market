@@ -7,6 +7,7 @@ extends CharacterBody3D
 @export var stopping_distance := 0.35
 @export var waypoint_distance := 0.65
 @export var print_debug_messages := true
+@export var sit_position_height_offset := 0.0
 
 @onready var rogue_visual: Node3D = $Rogue
 @onready var animation_player: AnimationPlayer = $Rogue/AnimationPlayer
@@ -14,10 +15,20 @@ extends CharacterBody3D
 
 const ANIMATION_LIBRARY := &"Player"
 
+enum NpcState {
+	IDLE,
+	MOVING,
+	MOVING_TO_SEAT,
+	SEATED,
+}
+
 var gravity: float = float(ProjectSettings.get_setting("physics/3d/default_gravity"))
 var _has_target := false
 var _path: PackedVector3Array = PackedVector3Array()
 var _path_index := 0
+var _state := NpcState.IDLE
+var _target_seat: Node3D = null
+var _target_seat_transform := Transform3D.IDENTITY
 
 func _ready() -> void:
 	navigation_agent.max_speed = move_speed
@@ -26,6 +37,44 @@ func _ready() -> void:
 	_play_animation("Idle_A", 0.0)
 
 func set_navigation_target(target_position: Vector3) -> void:
+	_release_target_seat()
+	_state = NpcState.MOVING
+	_set_navigation_target(target_position)
+
+func sit_at_seat(seat: Node3D) -> void:
+	if seat == null:
+		push_warning("Cannot sit: seat is null")
+		return
+
+	_release_target_seat()
+	_target_seat = seat
+	_target_seat_transform = seat.global_transform
+	_target_seat.set_meta("occupied", true)
+	_target_seat.set_meta("reserved_by", get_path())
+	_state = NpcState.MOVING_TO_SEAT
+
+	var navigation_map := get_world_3d().navigation_map
+	var approach_position := NavigationServer3D.map_get_closest_point(navigation_map, seat.global_position)
+	_set_navigation_target(approach_position)
+	if print_debug_messages:
+		print("NPC sitting target: ", seat.get_path(), " approach: ", approach_position)
+
+func sit_at_seat_path(seat_path: NodePath) -> void:
+	var seat := get_node_or_null(seat_path) as Node3D
+	if seat == null:
+		push_warning("Cannot sit: seat path not found: %s" % String(seat_path))
+		return
+	sit_at_seat(seat)
+
+func stand_up() -> void:
+	if _state != NpcState.SEATED:
+		return
+	_release_target_seat()
+	_state = NpcState.IDLE
+	_has_target = false
+	_play_animation("Idle_A")
+
+func _set_navigation_target(target_position: Vector3) -> void:
 	navigation_agent.target_position = target_position
 	_has_target = true
 	_path = NavigationServer3D.map_get_path(
@@ -42,8 +91,15 @@ func clear_navigation_target() -> void:
 	_has_target = false
 	_path = PackedVector3Array()
 	_path_index = 0
+	if _state != NpcState.SEATED:
+		_state = NpcState.IDLE
 
 func _physics_process(delta: float) -> void:
+	if _state == NpcState.SEATED:
+		velocity = Vector3.ZERO
+		_play_animation("Idle_A")
+		return
+
 	var direction := Vector3.ZERO
 
 	if _has_target and _path_index < _path.size():
@@ -64,7 +120,12 @@ func _physics_process(delta: float) -> void:
 	else:
 		if _has_target and print_debug_messages:
 			print("NPC navigation finished at: ", global_position)
+		if _state == NpcState.MOVING_TO_SEAT:
+			_finish_sitting()
+			return
 		_has_target = false
+		if _state == NpcState.MOVING:
+			_state = NpcState.IDLE
 
 	if direction != Vector3.ZERO:
 		var target_rotation := atan2(direction.x, direction.z)
@@ -87,6 +148,28 @@ func _horizontal_distance_to(target_position: Vector3) -> float:
 	var offset := target_position - global_position
 	offset.y = 0.0
 	return offset.length()
+
+func _finish_sitting() -> void:
+	_has_target = false
+	_path = PackedVector3Array()
+	_path_index = 0
+	velocity = Vector3.ZERO
+
+	global_position = _target_seat_transform.origin + Vector3.UP * sit_position_height_offset
+	rotation.y = _target_seat_transform.basis.get_euler().y
+	rogue_visual.rotation.y = 0.0
+	_state = NpcState.SEATED
+	_play_animation("Idle_A")
+	if print_debug_messages and _target_seat != null:
+		print("NPC seated at: ", _target_seat.get_path())
+
+func _release_target_seat() -> void:
+	if _target_seat == null:
+		return
+	if _target_seat.get_meta("reserved_by", NodePath()) == get_path():
+		_target_seat.set_meta("occupied", false)
+		_target_seat.remove_meta("reserved_by")
+	_target_seat = null
 
 func _update_animation(direction: Vector3) -> void:
 	if not is_on_floor():
