@@ -29,6 +29,8 @@ var _path_index := 0
 var _state := NpcState.IDLE
 var _target_seat: Node3D = null
 var _target_seat_transform := Transform3D.IDENTITY
+var _target_approach: Node3D = null
+var _target_approach_transform := Transform3D.IDENTITY
 
 func _ready() -> void:
 	navigation_agent.max_speed = move_speed
@@ -49,12 +51,17 @@ func sit_at_seat(seat: Node3D) -> void:
 	_release_target_seat()
 	_target_seat = seat
 	_target_seat_transform = seat.global_transform
+	_target_approach = _get_seat_approach_marker(seat)
+	if _target_approach != null:
+		_target_approach_transform = _target_approach.global_transform
+	else:
+		_target_approach_transform = seat.global_transform
 	_target_seat.set_meta("occupied", true)
 	_target_seat.set_meta("reserved_by", get_path())
 	_state = NpcState.MOVING_TO_SEAT
 
 	var navigation_map := get_world_3d().navigation_map
-	var approach_position := NavigationServer3D.map_get_closest_point(navigation_map, seat.global_position)
+	var approach_position := NavigationServer3D.map_get_closest_point(navigation_map, _target_approach_transform.origin)
 	_set_navigation_target(approach_position)
 	if print_debug_messages:
 		print("NPC sitting target: ", seat.get_path(), " approach: ", approach_position)
@@ -69,6 +76,9 @@ func sit_at_seat_path(seat_path: NodePath) -> void:
 func stand_up() -> void:
 	if _state != NpcState.SEATED:
 		return
+	global_position = _target_approach_transform.origin
+	rotation.y = _target_approach_transform.basis.get_euler().y
+	rogue_visual.rotation.y = 0.0
 	_release_target_seat()
 	_state = NpcState.IDLE
 	_has_target = false
@@ -170,6 +180,14 @@ func _release_target_seat() -> void:
 		_target_seat.set_meta("occupied", false)
 		_target_seat.remove_meta("reserved_by")
 	_target_seat = null
+	_target_approach = null
+
+func _get_seat_approach_marker(seat: Node3D) -> Node3D:
+	if not seat.has_meta("approach_path"):
+		return null
+
+	var approach_path := seat.get_meta("approach_path") as NodePath
+	return seat.get_node_or_null(approach_path) as Node3D
 
 func _update_animation(direction: Vector3) -> void:
 	if not is_on_floor():
