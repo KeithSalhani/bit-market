@@ -13,6 +13,8 @@ extends Node3D
 @export var seat_marker_height := 0.55
 @export var armchair_seat_offset := 0.45
 @export var approach_offset := 1.8
+@export var register_approach_reference_position := Vector3(0.422, 0.0, 8.304)
+@export var register_label_height := 0.8
 @export var approach_marker_height := 0.08
 @export var approach_dot_radius := 0.12
 @export var label_pixel_size := 0.006
@@ -21,6 +23,7 @@ extends Node3D
 var tables: Array[Node3D] = []
 var chairs: Array[Node3D] = []
 var armchairs: Array[Node3D] = []
+var cash_registers: Array[Node3D] = []
 
 func _ready() -> void:
 	if Engine.is_editor_hint() and not rebuild_in_editor:
@@ -39,10 +42,12 @@ func rebuild() -> void:
 	tables.clear()
 	chairs.clear()
 	armchairs.clear()
+	cash_registers.clear()
 	_collect_furniture(source_map)
 	tables.sort_custom(_sort_nodes_by_name)
 	chairs.sort_custom(_sort_nodes_by_name)
 	armchairs.sort_custom(_sort_nodes_by_name)
+	cash_registers.sort_custom(_sort_nodes_by_name)
 
 	var table_groups: Array[Dictionary] = []
 	for table_node in tables:
@@ -65,8 +70,11 @@ func rebuild() -> void:
 	for index in table_groups.size():
 		_build_table_group(index + 1, table_groups[index])
 
+	for index in cash_registers.size():
+		_build_cash_register(index + 1, cash_registers[index])
+
 	if print_summary:
-		print("SeatingMap: ", tables.size(), " tables, ", chairs.size(), " chairs, ", armchairs.size(), " armchairs")
+		print("SeatingMap: ", tables.size(), " tables, ", chairs.size(), " chairs, ", armchairs.size(), " armchairs, ", cash_registers.size(), " cash registers")
 
 func _collect_furniture(node: Node) -> void:
 	if node is Node3D:
@@ -78,6 +86,8 @@ func _collect_furniture(node: Node) -> void:
 			chairs.append(node_3d)
 		elif _is_indexed_furniture_name(node_name, "Armchair"):
 			armchairs.append(node_3d)
+		elif _is_cash_register_name(node_name):
+			cash_registers.append(node_3d)
 
 	for child in node.get_children():
 		_collect_furniture(child)
@@ -89,6 +99,15 @@ func _is_indexed_furniture_name(node_name: String, base_name: String) -> bool:
 		return false
 
 	var suffix := node_name.substr(base_name.length() + 1)
+	return suffix.is_valid_int()
+
+func _is_cash_register_name(node_name: String) -> bool:
+	if node_name == "Cash_register":
+		return true
+	if not node_name.begins_with("Cash_register_"):
+		return false
+
+	var suffix := node_name.substr("Cash_register_".length())
 	return suffix.is_valid_int()
 
 func _build_table_group(table_number: int, table_group: Dictionary) -> void:
@@ -127,6 +146,34 @@ func _build_table_group(table_number: int, table_group: Dictionary) -> void:
 	table_root.set_meta("armchair_count", source_armchairs.size())
 	table_root.set_meta("approach_count", approach_markers.size())
 
+func _build_cash_register(register_number: int, source_register: Node3D) -> void:
+	var register_root := Node3D.new()
+	register_root.name = "CashRegister_%02d" % register_number
+	add_child(register_root)
+	register_root.global_position = source_register.global_position
+	register_root.set_meta("source_register", source_register.get_path())
+	register_root.set_meta("register_id", register_number)
+
+	_add_label(
+		register_root,
+		"Label_CashRegister_%02d" % register_number,
+		"Register %02d" % register_number,
+		source_register.global_position + Vector3.UP * register_label_height,
+		Color(1.0, 0.9, 0.05, 1.0)
+	)
+
+	var approach_marker := Marker3D.new()
+	approach_marker.name = "CashRegister_%02d_Approach" % register_number
+	register_root.add_child(approach_marker)
+	approach_marker.global_position = Vector3(
+		source_register.global_position.x,
+		register_approach_reference_position.y + approach_marker_height,
+		register_approach_reference_position.z
+	)
+	approach_marker.set_meta("register_id", register_number)
+
+	_add_editor_red_dot(approach_marker)
+
 func _build_approach_markers(parent: Node3D, table_number: int, source_table: Node3D) -> Array[Marker3D]:
 	var markers: Array[Marker3D] = []
 	var table_position := source_table.global_position
@@ -155,6 +202,11 @@ func _add_approach_marker(parent: Node3D, table_number: int, suffix: String, mar
 	marker.set_meta("table_id", table_number)
 	marker.set_meta("approach_id", suffix)
 
+	_add_editor_red_dot(marker)
+
+	return marker
+
+func _add_editor_red_dot(parent: Node3D) -> void:
 	var dot := MeshInstance3D.new()
 	dot.name = "RedDot"
 	var sphere := SphereMesh.new()
@@ -167,9 +219,7 @@ func _add_approach_marker(parent: Node3D, table_number: int, suffix: String, mar
 	material.emission_enabled = true
 	material.emission = Color(1.0, 0.05, 0.03, 1.0)
 	dot.material_override = material
-	marker.add_child(dot)
-
-	return marker
+	parent.add_child(dot)
 
 func _add_seat(parent: Node3D, table_number: int, seat_number: int, source_seat: Node3D, seat_position: Vector3, seat_basis: Basis, approach_markers: Array[Marker3D]) -> void:
 	var seat_marker := Marker3D.new()
@@ -206,14 +256,14 @@ func _project_to_navigation(world_position: Vector3) -> Vector3:
 
 	return NavigationServer3D.map_get_closest_point(navigation_map, world_position)
 
-func _add_label(parent: Node3D, label_name: String, text: String, label_position: Vector3) -> void:
+func _add_label(parent: Node3D, label_name: String, text: String, label_position: Vector3, label_color := Color(0.1, 0.9, 1.0, 1.0)) -> void:
 	var label := Label3D.new()
 	label.name = label_name
 	label.text = text
 	label.pixel_size = label_pixel_size
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	label.no_depth_test = true
-	label.modulate = Color(0.1, 0.9, 1.0, 1.0)
+	label.modulate = label_color
 	label.visible = show_debug_labels
 	parent.add_child(label)
 	label.global_position = label_position
