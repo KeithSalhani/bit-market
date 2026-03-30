@@ -24,8 +24,6 @@ enum NpcState {
 
 var gravity: float = float(ProjectSettings.get_setting("physics/3d/default_gravity"))
 var _has_target := false
-var _path: PackedVector3Array = PackedVector3Array()
-var _path_index := 0
 var _state := NpcState.IDLE
 var _target_seat: Node3D = null
 var _target_seat_transform := Transform3D.IDENTITY
@@ -87,20 +85,11 @@ func stand_up() -> void:
 func _set_navigation_target(target_position: Vector3) -> void:
 	navigation_agent.target_position = target_position
 	_has_target = true
-	_path = NavigationServer3D.map_get_path(
-		get_world_3d().navigation_map,
-		NavigationServer3D.map_get_closest_point(get_world_3d().navigation_map, global_position),
-		target_position,
-		true
-	)
-	_path_index = 0
 	if print_debug_messages:
-		print("NPC target received: ", target_position, " from ", global_position, " path points: ", _path.size())
+		print("NPC target received: ", target_position, " from ", global_position)
 
 func clear_navigation_target() -> void:
 	_has_target = false
-	_path = PackedVector3Array()
-	_path_index = 0
 	if _state != NpcState.SEATED:
 		_state = NpcState.IDLE
 
@@ -112,22 +101,7 @@ func _physics_process(delta: float) -> void:
 
 	var direction := Vector3.ZERO
 
-	if _has_target and _path_index < _path.size():
-		while _path_index < _path.size() and _horizontal_distance_to(_path[_path_index]) <= waypoint_distance:
-			_path_index += 1
-
-		if _path_index < _path.size():
-			direction = _path[_path_index] - global_position
-			direction.y = 0.0
-			if direction.length() > 0.01:
-				direction = direction.normalized()
-			else:
-				direction = Vector3.ZERO
-		elif _horizontal_distance_to(navigation_agent.target_position) > stopping_distance:
-			direction = navigation_agent.target_position - global_position
-			direction.y = 0.0
-			direction = direction.normalized()
-	else:
+	if _has_target and navigation_agent.is_navigation_finished():
 		if _has_target and print_debug_messages:
 			print("NPC navigation finished at: ", global_position)
 		if _state == NpcState.MOVING_TO_SEAT:
@@ -136,6 +110,14 @@ func _physics_process(delta: float) -> void:
 		_has_target = false
 		if _state == NpcState.MOVING:
 			_state = NpcState.IDLE
+	elif _has_target:
+		var next_path_position := navigation_agent.get_next_path_position()
+		direction = next_path_position - global_position
+		direction.y = 0.0
+		if direction.length() > 0.01:
+			direction = direction.normalized()
+		else:
+			direction = Vector3.ZERO
 
 	if direction != Vector3.ZERO:
 		var target_rotation := atan2(direction.x, direction.z)
@@ -154,15 +136,8 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	_update_animation(direction)
 
-func _horizontal_distance_to(target_position: Vector3) -> float:
-	var offset := target_position - global_position
-	offset.y = 0.0
-	return offset.length()
-
 func _finish_sitting() -> void:
 	_has_target = false
-	_path = PackedVector3Array()
-	_path_index = 0
 	velocity = Vector3.ZERO
 
 	global_position = _target_seat_transform.origin + Vector3.UP * sit_position_height_offset
