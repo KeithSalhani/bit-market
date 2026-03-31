@@ -1,0 +1,51 @@
+[remap]
+
+importer="animation_library"
+importer_version=1
+type="AnimationLibrary"
+uid="uid://8ok8804gwy51"
+path="res://.godot/imported/carla_-_sitting_idle.glb-8bcd4dbebafe7c7eedb2107b9e746cc6.res"
+
+[deps]
+
+source_file="res://assets/animations/Base/carla_-_sitting_idle.glb"
+dest_files=["res://.godot/imported/carla_-_sitting_idle.glb-8bcd4dbebafe7c7eedb2107b9e746cc6.res"]
+
+[params]
+
+nodes/root_type=""
+nodes/root_name=""
+nodes/root_script=null
+nodes/apply_root_scale=true
+nodes/root_scale=1.0
+nodes/import_as_skeleton_bones=false
+nodes/use_name_suffixes=true
+nodes/use_node_type_suffixes=true
+meshes/ensure_tangents=true
+meshes/generate_lods=true
+meshes/create_shadow_meshes=true
+meshes/light_baking=1
+meshes/lightmap_texel_size=0.2
+meshes/force_disable_compression=false
+skins/use_named_skins=true
+animation/import=true
+animation/fps=30
+animation/trimming=false
+animation/remove_immutable_tracks=true
+animation/import_rest_as_RESET=false
+import_script/path=""
+materials/extract=0
+materials/extract_format=0
+materials/extract_path=""
+_subresources={
+"nodes": {
+"PATH:Sketchfab_model/00ccf7d206834c999240fa18521bc8a3_fbx/Object_2/RootNode/rp_carla_rigged_001/Object_5/Skeleton3D": {
+"retarget/bone_map": Object(BoneMap,"resource_local_to_scene":false,"resource_name":"","profile":Object(SkeletonProfileHumanoid,"resource_local_to_scene":false,"resource_name":"","root_bone":&"Root","scale_base_bone":&"Hips","group_size":4,"bone_size":56,"script":null)
+,"bonemap":null,"bone_map/Root":&"root_01","bone_map/Hips":&"hip_02","bone_map/Spine":&"spine_01_03","bone_map/Chest":&"spine_02_04","bone_map/UpperChest":&"spine_03_05","bone_map/Neck":&"neck_06","bone_map/Head":&"head_07","bone_map/LeftEye":&"eye_l_011","bone_map/RightEye":&"eye_r_013","bone_map/Jaw":&"jaw_09","bone_map/LeftShoulder":&"shoulder_l_023","bone_map/LeftUpperArm":&"upperarm_l_024","bone_map/LeftLowerArm":&"lowerarm_l_025","bone_map/LeftHand":&"hand_l_026","bone_map/LeftThumbMetacarpal":&"thumb_01_l_027","bone_map/LeftThumbProximal":&"thumb_02_l_028","bone_map/LeftThumbDistal":&"thumb_03_l_029","bone_map/LeftIndexProximal":&"index_01_l_031","bone_map/LeftIndexIntermediate":&"index_02_l_032","bone_map/LeftIndexDistal":&"index_03_l_033","bone_map/LeftMiddleProximal":&"middle_01_l_035","bone_map/LeftMiddleIntermediate":&"middle_02_l_00","bone_map/LeftMiddleDistal":&"middle_03_l_036","bone_map/LeftRingProximal":&"ring_01_l_038","bone_map/LeftRingIntermediate":&"ring_02_l_039","bone_map/LeftRingDistal":&"ring_03_l_040","bone_map/LeftLittleProximal":&"pinky_01_l_042","bone_map/LeftLittleIntermediate":&"pinky_02_l_043","bone_map/LeftLittleDistal":&"pinky_03_l_044","bone_map/RightShoulder":&"shoulder_r_048","bone_map/RightUpperArm":&"upperarm_r_049","bone_map/RightLowerArm":&"lowerarm_r_050","bone_map/RightHand":&"hand_r_051","bone_map/RightThumbMetacarpal":&"thumb_01_r_052","bone_map/RightThumbProximal":&"thumb_02_r_053","bone_map/RightThumbDistal":&"thumb_03_r_054","bone_map/RightIndexProximal":&"index_01_r_056","bone_map/RightIndexIntermediate":&"index_02_r_057","bone_map/RightIndexDistal":&"index_03_r_058","bone_map/RightMiddleProximal":&"middle_01_r_060","bone_map/RightMiddleIntermediate":&"middle_02_r_061","bone_map/RightMiddleDistal":&"middle_03_r_062","bone_map/RightRingProximal":&"ring_01_r_064","bone_map/RightRingIntermediate":&"ring_02_r_065","bone_map/RightRingDistal":&"ring_03_r_066","bone_map/RightLittleProximal":&"pinky_01_r_068","bone_map/RightLittleIntermediate":&"pinky_02_r_069","bone_map/RightLittleDistal":&"pinky_03_r_070","bone_map/LeftUpperLeg":&"upperleg_l_074","bone_map/LeftLowerLeg":&"lowerleg_l_075","bone_map/LeftFoot":&"foot_l_076","bone_map/LeftToes":&"ball_l_077","bone_map/RightUpperLeg":&"upperleg_r_081","bone_map/RightLowerLeg":&"lowerleg_r_082","bone_map/RightFoot":&"foot_r_083","bone_map/RightToes":&"ball_r_084","script":null)
+,
+"retarget/rest_fixer/fix_silhouette/enable": true
+}
+}
+}
+gltf/naming_version=2
+gltf/embedded_image_handling=1

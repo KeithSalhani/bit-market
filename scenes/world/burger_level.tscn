@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://ngrlfj5vt3sp"]
 
 [ext_resource type="PackedScene" uid="uid://brxmlgtvxpeni" path="res://scenes/world/burger_piz.tscn" id="1_utk43"]
-[ext_resource type="PackedScene" uid="uid://c844m6dh18n82" path="res://scenes/characters/rogue_npc.tscn" id="2_lg5qv"]
+[ext_resource type="PackedScene" uid="uid://wn8tdajtrfc5" path="res://scenes/characters/character_npc.tscn" id="2_lg5qv"]
 [ext_resource type="Script" uid="uid://bhkgqesryy3vq" path="res://src/navigation/burger_level_click_navigation_demo.gd" id="3_wsrv8"]
 [ext_resource type="Script" uid="uid://dicfuth41ekh4" path="res://src/world/seating_map_debugger.gd" id="4_vthih"]
 [ext_resource type="Script" uid="uid://cda0stk3qw6h3" path="res://src/world/demo_free_camera.gd" id="5_5y68n"]
@@ -26,7 +26,7 @@ script = ExtResource("4_vthih")
 script = ExtResource("6_0rqps")
 
 [node name="RogueNPC" parent="." unique_id=715621908 instance=ExtResource("2_lg5qv")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30.65971, 0.6, -4.419981)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.2693026, 0.6, 12.825795)
 
 [node name="DemoCamera3D" type="Camera3D" parent="." unique_id=95529586]
 transform = Transform3D(1, 0, 0, 0, 0.5533334, 0.8329599, 0, -0.8329599, 0.5533334, 4.6897583, 3.006259, 13.7276535)

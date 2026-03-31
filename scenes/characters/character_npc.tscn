@@ -1,0 +1,24 @@
+[gd_scene format=3 uid="uid://wn8tdajtrfc5"]
+
+[ext_resource type="Script" uid="uid://chittbgejsvos" path="res://src/movement/character_npc_movement.gd" id="1_psx01"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_psx01"]
+
+[node name="CharacterNPC" type="CharacterBody3D" unique_id=1446002868]
+script = ExtResource("1_psx01")
+character_id = "Character_01"
+visual_node_path = NodePath("VisualRoot")
+animation_player_path = NodePath("VisualRoot/CharacterVisual/AnimationPlayer")
+idle_animation = &"HumanF@Idle01"
+move_animation = &"HumanF@Walk01_Forward"
+fall_animation = &"HumanF@Fall01"
+
+[node name="VisualRoot" type="Node3D" parent="." unique_id=334404599]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=555564775]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.93965745, 0)
+shape = SubResource("CapsuleShape3D_psx01")
+
+[node name="NavigationAgent3D" type="NavigationAgent3D" parent="." unique_id=1544470232]
+path_desired_distance = 0.35
+target_desired_distance = 0.35

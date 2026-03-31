@@ -32,6 +32,9 @@ func _ready() -> void:
 		call_deferred("rebuild")
 
 func rebuild() -> void:
+	if not is_inside_tree():
+		return
+
 	_clear_generated_children()
 
 	var source_map := get_node_or_null(source_map_path) as Node3D
