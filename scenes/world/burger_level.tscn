@@ -1,6 +1,6 @@
 [gd_scene format=4 uid="uid://ngrlfj5vt3sp"]
 
-[ext_resource type="PackedScene" path="res://scenes/characters/character_npc.tscn" id="2_lg5qv"]
+[ext_resource type="PackedScene" uid="uid://wn8tdajtrfc5" path="res://scenes/characters/character_npc.tscn" id="2_lg5qv"]
 [ext_resource type="Texture2D" uid="uid://coclhdt57un41" path="res://assets/map/BurgerPiz_air-conditioning.png" id="2_r5607"]
 [ext_resource type="Texture2D" uid="uid://nomy7r1ka0gj" path="res://assets/map/BurgerPiz_Armchair.png" id="3_kwo5x"]
 [ext_resource type="Script" uid="uid://bhkgqesryy3vq" path="res://src/navigation/burger_level_click_navigation_demo.gd" id="3_wsrv8"]
@@ -10,6 +10,7 @@
 [ext_resource type="Texture2D" uid="uid://bpurbrrytjrv7" path="res://assets/map/BurgerPiz_sidewalk_01.png" id="5_uomg0"]
 [ext_resource type="Script" uid="uid://cgalyk15151ks" path="res://src/world/npc_seating_demo.gd" id="6_0rqps"]
 [ext_resource type="Texture2D" uid="uid://ded4vk4ju53w" path="res://assets/map/BurgerPiz_Background.png" id="6_ranal"]
+[ext_resource type="Script" uid="uid://c8p7h2kbyp27" path="res://src/world/burger_assembly_station.gd" id="7_burger_prep"]
 [ext_resource type="Texture2D" uid="uid://c26118mgefiea" path="res://assets/map/BurgerPiz_Building.jpg" id="7_cclsq"]
 [ext_resource type="Script" uid="uid://bbh5jiyyyry2c" path="res://src/world/worker_menu.gd" id="7_worker_menu"]
 [ext_resource type="Texture2D" uid="uid://bf25q7eoejamk" path="res://assets/map/BurgerPiz_Wall.jpg" id="8_1ecrv"]
@@ -33131,9 +33132,11 @@ script = ExtResource("7_worker_menu")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.2693026, 0.6, 12.825795)
 visual_node_path = NodePath("Rogue")
 animation_player_path = NodePath("Rogue/AnimationPlayer")
-idle_animation = &"Idle_A"
-move_animation = &"Running_A"
-fall_animation = &"Jump_Full_Long"
+idle_animation = &"HumanM@Idle01"
+move_animation = &"HumanM@Walk01_Forward"
+fall_animation = &"HumanM@Fall01"
+unisex_seated_animation_keywords = PackedStringArray("carla", "man")
+female_seated_animation_keywords = PackedStringArray("woman")
 
 [node name="DemoCamera3D" type="Camera3D" parent="." unique_id=95529586]
 transform = Transform3D(1, 0, 0, 0, 0.5533334, 0.8329599, 0, -0.8329599, 0.5533334, 4.6897583, 3.006259, 13.7276535)
@@ -33268,6 +33271,48 @@ mesh = SubResource("ArrayMesh_vjsrk")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Kitchen/Preperation_Shelf/prep_shelf/ketchup/StaticBody3D" unique_id=1889765450]
 shape = SubResource("ConcavePolygonShape3D_4gscw")
+
+[node name="BurgerPrepStation" type="Node3D" parent="Kitchen/Preperation_Shelf/prep_shelf" unique_id=1358862040]
+script = ExtResource("7_burger_prep")
+
+[node name="WorkerPrepSnapPoint" type="Marker3D" parent="Kitchen/Preperation_Shelf/prep_shelf/BurgerPrepStation" unique_id=621542485]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -0.02960515, -0.59093416, 0.34)
+
+[node name="WorkerPrepEntrancePoint" type="Marker3D" parent="Kitchen/Preperation_Shelf/prep_shelf/BurgerPrepStation" unique_id=1051261442]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.02960515, -0.20472345, 1.25)
+
+[node name="WorkerPrepExitPoint" type="Marker3D" parent="Kitchen/Preperation_Shelf/prep_shelf/BurgerPrepStation" unique_id=339432921]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.02960515, -0.20472345, 1.25)
+
+[node name="WorkerPrepStandPoint" type="Marker3D" parent="Kitchen/Preperation_Shelf/prep_shelf/BurgerPrepStation" unique_id=1553544702]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -0.02960515, -0.59093416, 0.34)
+
+[node name="BurgerAssemblyPoint" type="Marker3D" parent="Kitchen/Preperation_Shelf/prep_shelf/BurgerPrepStation" unique_id=1376637981]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.42653918, 0.19795465)
+
+[node name="WorkerReachTarget_Tomato" type="Marker3D" parent="Kitchen/Preperation_Shelf/prep_shelf/BurgerPrepStation" unique_id=611453842]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.6857343, 0.47, -0.02)
+
+[node name="WorkerReachTarget_Onion" type="Marker3D" parent="Kitchen/Preperation_Shelf/prep_shelf/BurgerPrepStation" unique_id=788433705]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.41272402, 0.47, -0.02)
+
+[node name="WorkerReachTarget_Cheese" type="Marker3D" parent="Kitchen/Preperation_Shelf/prep_shelf/BurgerPrepStation" unique_id=1047802411]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.14286423, 0.47, -0.02)
+
+[node name="WorkerReachTarget_Pickles" type="Marker3D" parent="Kitchen/Preperation_Shelf/prep_shelf/BurgerPrepStation" unique_id=805311679]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.14152908, 0.47, -0.02)
+
+[node name="WorkerReachTarget_Lettuce" type="Marker3D" parent="Kitchen/Preperation_Shelf/prep_shelf/BurgerPrepStation" unique_id=1595354291]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.4186592, 0.47, -0.02)
+
+[node name="WorkerReachTarget_Jalapenos" type="Marker3D" parent="Kitchen/Preperation_Shelf/prep_shelf/BurgerPrepStation" unique_id=292742743]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.68771744, 0.47, -0.02)
+
+[node name="WorkerReachTarget_Ketchup" type="Marker3D" parent="Kitchen/Preperation_Shelf/prep_shelf/BurgerPrepStation" unique_id=547731231]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.726563, 1.29, -0.05558586)
+
+[node name="WorkerReachTarget_Meat" type="Marker3D" parent="Kitchen/Preperation_Shelf/prep_shelf/BurgerPrepStation" unique_id=2083746457]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6331358, 0.40558648, 0.08860701)
 
 [node name="Fryer_2" type="Node" parent="Kitchen" unique_id=584852075]
 

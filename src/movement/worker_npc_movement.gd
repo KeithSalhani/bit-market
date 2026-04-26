@@ -1,5 +1,7 @@
 extends CharacterBody3D
 
+signal arrived_at_target(target_position: Vector3)
+
 @export var move_speed := 3.4
 @export var acceleration := 16.0
 @export var deceleration := 20.0
@@ -22,6 +24,9 @@ var _selected := false
 var _last_animation: StringName = &""
 var _has_look_target := false
 var _look_target := Vector3.ZERO
+var _current_target := Vector3.ZERO
+var _is_snapped_to_station := false
+var _station_exit_transform := Transform3D.IDENTITY
 
 func _ready() -> void:
 	add_to_group("worker_npc")
@@ -40,27 +45,59 @@ func is_selected() -> bool:
 	return _selected
 
 func set_navigation_target(target_position: Vector3) -> void:
+	_leave_station_snap()
 	navigation_agent.target_position = target_position
+	_current_target = target_position
 	_has_target = true
 	_has_look_target = false
 
 func set_navigation_target_with_look_target(target_position: Vector3, look_target: Vector3) -> void:
+	_leave_station_snap()
 	navigation_agent.target_position = target_position
+	_current_target = target_position
 	_look_target = look_target
 	_has_target = true
 	_has_look_target = true
+
+func set_navigation_target_without_leaving_station(target_position: Vector3, look_target: Variant = null) -> void:
+	navigation_agent.target_position = target_position
+	_current_target = target_position
+	_has_target = true
+	if look_target is Vector3:
+		_look_target = look_target
+		_has_look_target = true
+	else:
+		_has_look_target = false
+
+func snap_to_station(snap_marker: Node3D, exit_marker: Node3D = null) -> void:
+	if snap_marker == null:
+		return
+	_has_target = false
+	velocity = Vector3.ZERO
+	_apply_station_marker_transform(snap_marker.global_transform)
+	if exit_marker != null:
+		_station_exit_transform = exit_marker.global_transform
+	else:
+		_station_exit_transform = snap_marker.global_transform
+	_is_snapped_to_station = true
 
 func clear_navigation_target() -> void:
 	_has_target = false
 	_has_look_target = false
 
 func _physics_process(delta: float) -> void:
+	if _is_snapped_to_station:
+		velocity = Vector3.ZERO
+		_update_worker_animation(Vector3.ZERO)
+		return
+
 	var direction := Vector3.ZERO
 
 	if _has_target and _is_navigation_target_reached():
 		_has_target = false
 		if _has_look_target:
 			_face_target(_look_target, delta)
+		arrived_at_target.emit(_current_target)
 	elif _has_target:
 		var next_path_position := navigation_agent.get_next_path_position()
 		direction = next_path_position - global_position
@@ -169,3 +206,16 @@ func _find_animation_player(node: Node) -> AnimationPlayer:
 			return found
 
 	return null
+
+func _leave_station_snap() -> void:
+	if not _is_snapped_to_station:
+		return
+	_apply_station_marker_transform(_station_exit_transform)
+	_is_snapped_to_station = false
+
+func _apply_station_marker_transform(marker_transform: Transform3D) -> void:
+	global_position = marker_transform.origin
+	rotation = Vector3.ZERO
+	velocity = Vector3.ZERO
+	if visual_node != null:
+		visual_node.rotation.y = marker_transform.basis.get_euler().y

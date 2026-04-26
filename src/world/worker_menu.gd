@@ -5,6 +5,7 @@ extends Node3D
 @export var ray_length := 1000.0
 @export var navigation_plane_y := 0.4
 @export var spawn_spacing := 0.55
+@export var prep_station_path: NodePath = ^"../Kitchen/Preperation_Shelf/prep_shelf/BurgerPrepStation"
 
 var workers_root: Node3D
 var seating_map: Node3D
@@ -13,6 +14,7 @@ var worker_count := 0
 
 var status_label: Label
 var send_button: Button
+var prep_button: Button
 
 func _ready() -> void:
 	workers_root = Node3D.new()
@@ -46,7 +48,7 @@ func _build_menu() -> void:
 	panel.offset_left = 16.0
 	panel.offset_top = 16.0
 	panel.offset_right = 244.0
-	panel.offset_bottom = 164.0
+	panel.offset_bottom = 204.0
 	canvas.add_child(panel)
 
 	var margin := MarginContainer.new()
@@ -75,6 +77,12 @@ func _build_menu() -> void:
 	send_button.pressed.connect(_send_selected_worker_to_register)
 	layout.add_child(send_button)
 
+	prep_button = Button.new()
+	prep_button.text = "Prep burger"
+	prep_button.disabled = true
+	prep_button.pressed.connect(_prep_selected_worker_burger)
+	layout.add_child(prep_button)
+
 	status_label = Label.new()
 	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	status_label.text = "No worker selected"
@@ -98,15 +106,76 @@ func _spawn_worker() -> void:
 
 func _send_selected_worker_to_register() -> void:
 	if selected_worker == null:
+		_set_status_message("Select a worker first.")
 		return
 
 	var register_target := _find_register_target(selected_worker.global_position)
 	if register_target == null:
 		push_warning("No cash register red point found.")
+		_set_status_message("No cash register target found.")
 		return
 
 	var register_position := _get_register_position(register_target)
 	_move_worker_to(selected_worker, register_target.global_position, register_position)
+
+func _prep_selected_worker_burger() -> void:
+	if selected_worker == null:
+		_set_status_message("Select a worker first.")
+		return
+
+	var prep_station := _resolve_prep_station()
+	if prep_station == null:
+		push_warning("Burger prep station missing at Kitchen/Preperation_Shelf/prep_shelf/BurgerPrepStation.")
+		_set_status_message("Burger prep station missing.")
+		return
+
+	var snap_point: Node3D = null
+	if prep_station.has_method("get_snap_point"):
+		snap_point = prep_station.call("get_snap_point") as Node3D
+	if snap_point == null:
+		push_warning("Burger prep station is missing WorkerPrepSnapPoint.")
+		_set_status_message("Prep snap point missing.")
+		return
+
+	var entrance_point: Node3D = null
+	if prep_station.has_method("get_entrance_point"):
+		entrance_point = prep_station.call("get_entrance_point") as Node3D
+	if entrance_point == null:
+		push_warning("Burger prep station is missing WorkerPrepEntrancePoint.")
+		_set_status_message("Prep entrance point missing.")
+		return
+
+	var exit_point: Node3D = null
+	if prep_station.has_method("get_exit_point"):
+		exit_point = prep_station.call("get_exit_point") as Node3D
+
+	var assembly_point: Node3D = null
+	if prep_station.has_method("get_assembly_point"):
+		assembly_point = prep_station.call("get_assembly_point") as Node3D
+	if assembly_point == null:
+		push_warning("Burger prep station is missing BurgerAssemblyPoint.")
+		_set_status_message("Burger assembly point missing.")
+		return
+
+	var look_target := assembly_point.global_position
+	if prep_station.has_method("get_look_target"):
+		var called_look_target: Variant = prep_station.call("get_look_target")
+		if called_look_target is Vector3:
+			look_target = called_look_target
+	_move_worker_to(selected_worker, entrance_point.global_position, look_target, false)
+	_set_status_message("Sending %s to prep burger." % selected_worker.name)
+	await selected_worker.arrived_at_target
+
+	if selected_worker == null:
+		return
+	if selected_worker.has_method("snap_to_station"):
+		selected_worker.snap_to_station(snap_point, exit_point)
+	_set_status_message("%s is assembling a burger." % selected_worker.name)
+	var assembled: bool = bool(await prep_station.call("assemble_default_burger", selected_worker))
+	if assembled:
+		_set_status_message("%s prepped a burger." % selected_worker.name)
+	else:
+		_set_status_message("Burger prep could not start.")
 
 func _select_worker(worker: CharacterBody3D) -> void:
 	if selected_worker != null and selected_worker.has_method("set_selected"):
@@ -118,10 +187,12 @@ func _select_worker(worker: CharacterBody3D) -> void:
 
 	_refresh_status()
 
-func _move_worker_to(worker: CharacterBody3D, target_position: Vector3, look_target: Variant = null) -> void:
+func _move_worker_to(worker: CharacterBody3D, target_position: Vector3, look_target: Variant = null, release_station_snap := true) -> void:
 	var navigation_map := get_world_3d().navigation_map
 	var closest_point := NavigationServer3D.map_get_closest_point(navigation_map, target_position)
-	if look_target != null and worker.has_method("set_navigation_target_with_look_target"):
+	if not release_station_snap and worker.has_method("set_navigation_target_without_leaving_station"):
+		worker.set_navigation_target_without_leaving_station(closest_point, look_target)
+	elif look_target != null and worker.has_method("set_navigation_target_with_look_target"):
 		worker.set_navigation_target_with_look_target(closest_point, look_target as Vector3)
 	elif worker.has_method("set_navigation_target"):
 		worker.set_navigation_target(closest_point)
@@ -177,6 +248,21 @@ func _resolve_seating_map() -> Node3D:
 		return configured_map
 	return get_tree().current_scene.find_child("SeatingMap", true, false) as Node3D
 
+func _resolve_prep_station() -> Node:
+	var configured_station := get_node_or_null(prep_station_path)
+	if configured_station != null:
+		return configured_station
+
+	var current_scene := get_tree().current_scene
+	if current_scene == null:
+		return null
+
+	var prep_shelf := current_scene.get_node_or_null("Kitchen/Preperation_Shelf/prep_shelf")
+	if prep_shelf == null:
+		push_warning("Kitchen/Preperation_Shelf/prep_shelf was not found.")
+		return null
+	return prep_shelf.get_node_or_null("BurgerPrepStation")
+
 func _collect_register_markers(node: Node, marker_suffix: String, markers: Array[Node3D]) -> void:
 	if node is Node3D:
 		var node_name := String(node.name)
@@ -231,6 +317,8 @@ func _raycast(screen_position: Vector2) -> Dictionary:
 func _refresh_status() -> void:
 	if send_button != null:
 		send_button.disabled = selected_worker == null
+	if prep_button != null:
+		prep_button.disabled = selected_worker == null
 	if status_label == null:
 		return
 
@@ -239,3 +327,7 @@ func _refresh_status() -> void:
 		status_label.text = "%d workers. Select a worker, then right-click to move." % count
 	else:
 		status_label.text = "Selected: %s. Right-click to move." % selected_worker.name
+
+func _set_status_message(message: String) -> void:
+	if status_label != null:
+		status_label.text = message

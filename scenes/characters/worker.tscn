@@ -4,9 +4,10 @@
 [ext_resource type="AnimationLibrary" uid="uid://dj5wfq15hh3lg" path="res://assets/animations/Male/Idles/HumanM@Idle01.fbx" id="2_0pxta"]
 [ext_resource type="AnimationLibrary" uid="uid://ckprgqmisu0hv" path="res://assets/animations/Male/Movement/Walk/HumanM@Walk01_Forward.fbx" id="3_ihh0x"]
 [ext_resource type="Script" uid="uid://buey0m2dcr8lc" path="res://src/movement/worker_npc_movement.gd" id="4_worker_script"]
+[ext_resource type="Script" uid="uid://bxcs7gbf1rs64" path="res://src/movement/worker_reach_controller.gd" id="5_reach_controller"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_worker"]
-radius = 0.28
+radius = 0.19091797
 height = 1.65
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_select"]
@@ -44,7 +45,10 @@ path_desired_distance = 0.45
 target_desired_distance = 0.28
 
 [node name="SelectionRing" type="MeshInstance3D" parent="." unique_id=1088336076]
-transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0.03, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
 visible = false
 material_override = SubResource("StandardMaterial3D_select")
 mesh = SubResource("TorusMesh_select")
+
+[node name="WorkerReachController" type="Node3D" parent="." unique_id=1225177041]
+script = ExtResource("5_reach_controller")
