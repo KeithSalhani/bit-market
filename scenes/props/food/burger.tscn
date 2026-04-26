@@ -1,0 +1,32 @@
+[gd_scene format=3 uid="uid://ox4tcrbbh522"]
+
+[ext_resource type="PackedScene" uid="uid://0s2ajh387qmf" path="res://scenes/props/food/bottom_bun.tscn" id="1_vc5o2"]
+[ext_resource type="PackedScene" uid="uid://n5mhltm5xhad" path="res://scenes/props/food/lettuce.tscn" id="2_6k7g7"]
+[ext_resource type="PackedScene" uid="uid://bd3w47plwak1h" path="res://scenes/props/food/meat.tscn" id="3_4kg28"]
+[ext_resource type="PackedScene" uid="uid://cj48w04d1lrlg" path="res://scenes/props/food/cheese.tscn" id="4_gsltf"]
+[ext_resource type="PackedScene" uid="uid://cr50o5h0rjkau" path="res://scenes/props/food/pickles.tscn" id="5_r7v1n"]
+[ext_resource type="PackedScene" uid="uid://chur2nyqb1wn2" path="res://scenes/props/food/onion.tscn" id="6_0n7vj"]
+[ext_resource type="PackedScene" uid="uid://c2cq1jf0ltunk" path="res://scenes/props/food/top_bun.tscn" id="7_xfj8d"]
+
+[node name="Node3D" type="Node3D" unique_id=583340190]
+transform = Transform3D(0.01, 0, 0, 0, 0.01, 0, 0, 0, 0.01, 0, 0, 0)
+
+[node name="bottom_bun" parent="." unique_id=266203773 instance=ExtResource("1_vc5o2")]
+
+[node name="lettuce" parent="." unique_id=1737630537 instance=ExtResource("2_6k7g7")]
+transform = Transform3D(0.1, 0, 0, 0, -1.6292068e-08, 0.1, 0, -0.1, -1.6292068e-08, 0, 1.532969, 0)
+
+[node name="meat" parent="." unique_id=1465414276 instance=ExtResource("3_4kg28")]
+transform = Transform3D(0.1, 0, 0, 0, -1.6292068e-08, 0.1, 0, -0.1, -1.6292068e-08, 0, 0.23644829, 0)
+
+[node name="cheese" parent="." unique_id=489528880 instance=ExtResource("4_gsltf")]
+transform = Transform3D(0.1, 0, 0, 0, -1.6292068e-08, 0.1, 0, -0.1, -1.6292068e-08, 0, 4.905012, 0)
+
+[node name="pickles" parent="." unique_id=1034986578 instance=ExtResource("5_r7v1n")]
+transform = Transform3D(0.1, 0, 0, 0, -1.6292068e-08, 0.1, 0, -0.1, -1.6292068e-08, -5.226259, 5.1309967, 4.482118)
+
+[node name="onion" parent="." unique_id=1179930213 instance=ExtResource("6_0n7vj")]
+transform = Transform3D(0.1, 0, 0, 0, -1.6292068e-08, 0.1, 0, -0.1, -1.6292068e-08, 1.682106, 4.9847755, 3.4646797)
+
+[node name="top_bun" parent="." unique_id=960491896 instance=ExtResource("7_xfj8d")]
+transform = Transform3D(0.1, 0, 0, 0, -1.6292068e-08, 0.1, 0, -0.1, -1.6292068e-08, 0, -1.5984979, 0)
