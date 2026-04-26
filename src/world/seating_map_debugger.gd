@@ -176,6 +176,20 @@ func _build_cash_register(register_number: int, source_register: Node3D) -> void
 	approach_marker.set_meta("register_id", register_number)
 
 	_add_editor_red_dot(approach_marker)
+	_add_cash_register_opposite_dot(register_root, register_number, source_register.global_position, approach_marker.global_position)
+
+func _add_cash_register_opposite_dot(register_root: Node3D, register_number: int, register_position: Vector3, red_dot_position: Vector3) -> void:
+	var opposite_marker := Marker3D.new()
+	opposite_marker.name = "CashRegister_%02d_Opposite" % register_number
+	register_root.add_child(opposite_marker)
+	opposite_marker.global_position = Vector3(
+		register_position.x + (register_position.x - red_dot_position.x),
+		red_dot_position.y,
+		register_position.z + (register_position.z - red_dot_position.z)
+	)
+	opposite_marker.set_meta("register_id", register_number)
+
+	_add_editor_green_dot(opposite_marker)
 
 func _build_approach_markers(parent: Node3D, table_number: int, source_table: Node3D) -> Array[Marker3D]:
 	var markers: Array[Marker3D] = []
@@ -210,17 +224,23 @@ func _add_approach_marker(parent: Node3D, table_number: int, suffix: String, mar
 	return marker
 
 func _add_editor_red_dot(parent: Node3D) -> void:
+	_add_editor_dot(parent, "RedDot", Color(1.0, 0.05, 0.03, 1.0))
+
+func _add_editor_green_dot(parent: Node3D) -> void:
+	_add_editor_dot(parent, "GreenDot", Color(0.05, 1.0, 0.1, 1.0))
+
+func _add_editor_dot(parent: Node3D, dot_name: String, dot_color: Color) -> void:
 	var dot := MeshInstance3D.new()
-	dot.name = "RedDot"
+	dot.name = dot_name
 	var sphere := SphereMesh.new()
 	sphere.radius = approach_dot_radius
 	sphere.height = approach_dot_radius * 2.0
 	dot.mesh = sphere
 	dot.visible = Engine.is_editor_hint()
 	var material := StandardMaterial3D.new()
-	material.albedo_color = Color(1.0, 0.05, 0.03, 1.0)
+	material.albedo_color = dot_color
 	material.emission_enabled = true
-	material.emission = Color(1.0, 0.05, 0.03, 1.0)
+	material.emission = dot_color
 	dot.material_override = material
 	parent.add_child(dot)
 
