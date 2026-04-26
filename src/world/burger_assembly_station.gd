@@ -4,13 +4,18 @@ extends Node3D
 @export var entrance_point_path: NodePath = ^"WorkerPrepEntrancePoint"
 @export var exit_point_path: NodePath = ^"WorkerPrepExitPoint"
 @export var assembly_point_path: NodePath = ^"BurgerAssemblyPoint"
+@export var storage_point_path: NodePath = ^"BurgerStoragePoint"
 @export var prep_shelf_path: NodePath = ^".."
+@export var grill_station_path: NodePath = ^"../../../Grills/Grill_002/Grill002Station"
+@export var cooked_meat_stock := 0
 @export var layer_spacing := 0.24
 @export var burger_scale := Vector3(0.0035, 0.0035, 0.0035)
+@export var finished_burger_scale_multiplier := 0.65
 @export var layer_scale := 0.1
 @export var ingredient_contact_height := 0.12
 @export var ingredient_front_offset := 0.16
 @export var burger_place_height := 0.18
+@export var burger_storage_spacing := Vector2(0.22, 0.22)
 @export var default_recipe := PackedStringArray(["meat", "cheese", "pickles", "onion", "lettuce"])
 
 const FOOD_SCENES := {
@@ -23,9 +28,15 @@ const FOOD_SCENES := {
 	"tomato": preload("res://scenes/props/food/tomato.tscn"),
 	"top_bun": preload("res://scenes/props/food/top_bun.tscn"),
 }
+const FINISHED_BURGER_SCENE := preload("res://scenes/props/food/burger.tscn")
 
 var _current_burger: Node3D
+var _stored_burgers: Array[Node3D] = []
+var _full_label: Label3D
 var _using_explicit_reach_target := false
+
+func _ready() -> void:
+	_prepare_storage_visuals()
 
 func get_stand_point() -> Node3D:
 	return get_snap_point()
@@ -51,6 +62,9 @@ func get_exit_point() -> Node3D:
 func get_assembly_point() -> Node3D:
 	return get_node_or_null(assembly_point_path) as Node3D
 
+func get_storage_point() -> Node3D:
+	return get_node_or_null(storage_point_path) as Node3D
+
 func get_look_target() -> Vector3:
 	var assembly_point := get_assembly_point()
 	if assembly_point != null:
@@ -66,6 +80,10 @@ func assemble_default_burger(worker: Node) -> bool:
 	return await assemble_burger(worker, default_recipe)
 
 func assemble_burger(worker: Node, recipe: PackedStringArray) -> bool:
+	if is_burger_storage_full():
+		show_storage_full()
+		return false
+
 	var assembly_point := get_assembly_point()
 	if assembly_point == null:
 		push_warning("Burger prep station cannot assemble: BurgerAssemblyPoint is missing.")
@@ -95,6 +113,9 @@ func assemble_burger(worker: Node, recipe: PackedStringArray) -> bool:
 			push_warning("Burger prep station skipped '%s': ingredient reach target is missing." % ingredient_name)
 			continue
 
+		if ingredient_name == "meat" and not await ensure_cooked_meat(worker, reach_controller):
+			return false
+
 		var pickup_position := target.global_position if _using_explicit_reach_target else _get_ingredient_contact_position(target)
 		var place_position := _get_burger_place_position(layer_index)
 		if reach_controller.has_method("pick_and_place"):
@@ -102,10 +123,124 @@ func assemble_burger(worker: Node, recipe: PackedStringArray) -> bool:
 		else:
 			await reach_controller.call("reach_to", pickup_position)
 			await reach_controller.call("reach_to", place_position)
+		if ingredient_name == "meat":
+			consume_cooked_meat()
 		_spawn_layer(ingredient_name, layer_index)
 		layer_index += 1
 
 	_spawn_layer("top_bun", layer_index)
+	_replace_with_finished_burger(assembly_point)
+	await _store_finished_burger(worker, reach_controller)
+	return true
+
+func is_burger_storage_full() -> bool:
+	return _get_stored_burger_count() >= _get_storage_capacity() and _current_burger != null
+
+func show_storage_full() -> void:
+	_prepare_storage_visuals()
+	if _full_label == null:
+		return
+	_full_label.visible = true
+	var tween := create_tween()
+	tween.tween_property(_full_label, "modulate:a", 1.0, 0.05)
+	tween.tween_interval(1.0)
+	tween.tween_property(_full_label, "modulate:a", 0.0, 0.25)
+	tween.tween_callback(func() -> void:
+		if _full_label != null:
+			_full_label.visible = false
+	)
+
+func has_finished_burger() -> bool:
+	return _peek_next_finished_burger() != null
+
+func get_finished_burger_count() -> int:
+	var count := 0
+	if _current_burger != null and is_instance_valid(_current_burger):
+		count += 1
+
+	for index in range(_stored_burgers.size()):
+		var burger := _stored_burgers[index]
+		if burger != null and is_instance_valid(burger):
+			count += 1
+		else:
+			_stored_burgers[index] = null
+	return count
+
+func debug_add_cooked_meat(amount := 4) -> void:
+	stock_cooked_meat(amount)
+
+func debug_create_finished_burger() -> bool:
+	if is_burger_storage_full():
+		show_storage_full()
+		return false
+
+	var assembly_point := get_assembly_point()
+	if assembly_point == null:
+		push_warning("Burger prep station cannot debug-create burger: BurgerAssemblyPoint is missing.")
+		return false
+
+	if _current_burger != null and is_instance_valid(_current_burger):
+		await _store_finished_burger(null, null)
+	if _current_burger != null and is_instance_valid(_current_burger):
+		show_storage_full()
+		return false
+
+	_replace_with_finished_burger(assembly_point)
+	await _store_finished_burger(null, null)
+	return true
+
+func pick_finished_burger_for_transport(worker: Node) -> Node3D:
+	var burger := _peek_next_finished_burger()
+	if burger == null:
+		return null
+
+	var reach_controller := _get_reach_controller(worker)
+	if reach_controller != null and reach_controller.has_method("reach_to"):
+		await reach_controller.call("reach_to", burger.global_position)
+
+	_remove_finished_burger_from_storage(burger)
+	burger.visible = false
+	return burger
+
+func stock_cooked_meat(amount: int) -> void:
+	cooked_meat_stock = maxi(cooked_meat_stock + amount, 0)
+
+func consume_cooked_meat(amount := 1) -> bool:
+	if cooked_meat_stock < amount:
+		return false
+	cooked_meat_stock -= amount
+	return true
+
+func ensure_cooked_meat(worker: Node, reach_controller: Node = null) -> bool:
+	if cooked_meat_stock > 0:
+		return true
+
+	if reach_controller == null:
+		reach_controller = _get_reach_controller(worker)
+	if reach_controller == null:
+		push_warning("Burger prep station cannot grill meat: selected worker has no right-hand IK reach controller.")
+		return false
+
+	var grill_station := _get_grill_station()
+	if grill_station == null:
+		push_warning("Burger prep station cannot grill meat: Grill002Station is missing.")
+		return false
+	if not grill_station.has_method("cook_meat"):
+		push_warning("Burger prep station cannot grill meat: configured grill station has no cook_meat method.")
+		return false
+
+	var cooked_count: int = int(await grill_station.call("cook_meat", worker, _get_raw_meat_pickup_position(), reach_controller))
+	if cooked_count <= 0:
+		return false
+	stock_cooked_meat(cooked_count)
+
+	if not await _navigate_worker_to(worker, get_entrance_point().global_position, get_look_target()):
+		return false
+
+	var prep_snap := get_snap_point()
+	var prep_exit := get_exit_point()
+	if prep_snap != null and worker.has_method("snap_to_station"):
+		worker.call("snap_to_station", prep_snap, prep_exit)
 	return true
 
 func _spawn_layer(layer_name: String, layer_index: int) -> void:
@@ -125,6 +260,124 @@ func _spawn_layer(layer_name: String, layer_index: int) -> void:
 func _get_layer_transform(layer_index: int, _layer_name: String) -> Transform3D:
 	var layer_basis := Basis(Vector3.RIGHT, -PI * 0.5).scaled(Vector3.ONE * layer_scale)
 	return Transform3D(layer_basis, Vector3(0.0, float(layer_index) * layer_spacing, 0.0))
+
+func _replace_with_finished_burger(assembly_point: Node3D) -> void:
+	_clear_current_burger()
+	var finished_burger := FINISHED_BURGER_SCENE.instantiate() as Node3D
+	if finished_burger == null:
+		push_warning("Burger prep station finished burger scene did not instantiate as Node3D.")
+		return
+
+	finished_burger.name = "AssembledBurger"
+	add_child(finished_burger)
+	finished_burger.global_position = assembly_point.global_position
+	finished_burger.global_rotation = Vector3.ZERO
+	finished_burger.scale *= finished_burger_scale_multiplier
+	_current_burger = finished_burger
+
+func _store_finished_burger(worker: Node, reach_controller: Node) -> bool:
+	if _current_burger == null or not is_instance_valid(_current_burger):
+		return false
+	var finished_burger := _current_burger
+
+	var slot_index := _get_next_storage_slot_index()
+	if slot_index == -1:
+		return false
+
+	var assembly_point := get_assembly_point()
+	var storage_position := _get_storage_slot_position(slot_index)
+	if assembly_point != null and reach_controller != null:
+		if reach_controller.has_method("pick_and_place"):
+			await reach_controller.call("pick_and_place", assembly_point.global_position, storage_position)
+		else:
+			await reach_controller.call("reach_to", assembly_point.global_position)
+			await reach_controller.call("reach_to", storage_position)
+
+	if not is_instance_valid(finished_burger):
+		return false
+
+	finished_burger.global_position = storage_position
+	finished_burger.global_rotation = Vector3.ZERO
+	_stored_burgers[slot_index] = finished_burger
+	if _current_burger == finished_burger:
+		_current_burger = null
+	return true
+
+func _prepare_storage_visuals() -> void:
+	if _stored_burgers.size() != _get_storage_capacity():
+		_stored_burgers.resize(_get_storage_capacity())
+
+	var storage_point := get_storage_point()
+	if storage_point == null or _full_label != null:
+		return
+
+	_full_label = Label3D.new()
+	_full_label.name = "BurgerStorageFullLabel"
+	_full_label.text = "Full!"
+	_full_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_full_label.font_size = 72
+	_full_label.modulate = Color(1.0, 0.15, 0.08, 0.0)
+	_full_label.outline_size = 8
+	_full_label.outline_modulate = Color(0.0, 0.0, 0.0, 0.85)
+	_full_label.position = Vector3(0.0, 0.35, 0.0)
+	_full_label.visible = false
+	storage_point.add_child(_full_label)
+
+func _get_storage_capacity() -> int:
+	return 4
+
+func _get_stored_burger_count() -> int:
+	var count := 0
+	for index in range(_stored_burgers.size()):
+		var burger := _stored_burgers[index]
+		if burger != null and is_instance_valid(burger):
+			count += 1
+		else:
+			_stored_burgers[index] = null
+	return count
+
+func _get_next_storage_slot_index() -> int:
+	if _stored_burgers.size() != _get_storage_capacity():
+		_stored_burgers.resize(_get_storage_capacity())
+
+	for index in range(_stored_burgers.size()):
+		var burger := _stored_burgers[index]
+		if burger == null or not is_instance_valid(burger):
+			_stored_burgers[index] = null
+			return index
+	return -1
+
+func _peek_next_finished_burger() -> Node3D:
+	if _current_burger != null and is_instance_valid(_current_burger):
+		return _current_burger
+
+	for index in range(_stored_burgers.size() - 1, -1, -1):
+		var burger := _stored_burgers[index]
+		if burger != null and is_instance_valid(burger):
+			return burger
+		_stored_burgers[index] = null
+	return null
+
+func _remove_finished_burger_from_storage(burger: Node3D) -> void:
+	if _current_burger == burger:
+		_current_burger = null
+	for index in range(_stored_burgers.size()):
+		if _stored_burgers[index] == burger:
+			_stored_burgers[index] = null
+			return
+
+func _get_storage_slot_position(slot_index: int) -> Vector3:
+	var storage_point := get_storage_point()
+	if storage_point == null:
+		return global_position
+
+	var offsets := [
+		Vector3(-burger_storage_spacing.x, 0.0, -burger_storage_spacing.y),
+		Vector3(burger_storage_spacing.x, 0.0, -burger_storage_spacing.y),
+		Vector3(-burger_storage_spacing.x, 0.0, burger_storage_spacing.y),
+		Vector3(burger_storage_spacing.x, 0.0, burger_storage_spacing.y),
+	]
+	return storage_point.global_transform * offsets[clampi(slot_index, 0, offsets.size() - 1)]
 
 func _find_ingredient_target(ingredient_name: String) -> Node3D:
 	var direct := find_child("WorkerReachTarget_" + ingredient_name.capitalize(), true, false) as Node3D
@@ -163,6 +416,32 @@ func _get_burger_place_position(layer_index: int) -> Vector3:
 	if assembly_point == null:
 		return global_position
 	return assembly_point.global_position + Vector3.UP * (burger_place_height + float(layer_index) * layer_spacing * burger_scale.y)
+
+func _get_raw_meat_pickup_position() -> Vector3:
+	var target := _find_ingredient_target("meat")
+	if target == null:
+		return global_position
+	return target.global_position if _using_explicit_reach_target else _get_ingredient_contact_position(target)
+
+func _get_grill_station() -> Node3D:
+	return get_node_or_null(grill_station_path) as Node3D
+
+func _navigate_worker_to(worker: Node, target_position: Vector3, look_target: Vector3) -> bool:
+	if worker == null:
+		return false
+
+	var navigation_map := get_world_3d().navigation_map
+	var closest_point := NavigationServer3D.map_get_closest_point(navigation_map, target_position)
+	if worker.has_method("set_navigation_target_with_look_target"):
+		worker.call("set_navigation_target_with_look_target", closest_point, look_target)
+	elif worker.has_method("set_navigation_target"):
+		worker.call("set_navigation_target", closest_point)
+	else:
+		push_warning("Burger prep station cannot move worker: worker has no navigation target API.")
+		return false
+
+	await worker.arrived_at_target
+	return true
 
 func _get_reach_controller(worker: Node) -> Node:
 	if worker == null:

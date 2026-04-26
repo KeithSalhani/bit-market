@@ -1,0 +1,5 @@
+[gd_scene format=3 uid="uid://bc3x4ar88yson"]
+
+[ext_resource type="PackedScene" uid="uid://cgdj0p6an1npn" path="res://assets/objects/low_poly_psx_soda_can.glb" id="1_5vqyf"]
+
+[node name="Sketchfab_Scene" unique_id=892378770 instance=ExtResource("1_5vqyf")]
