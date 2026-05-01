@@ -1,0 +1,243 @@
+extends Node
+
+enum State {
+	ENTERING,
+	WAITING_FOR_REGISTER,
+	ORDERING,
+	WAITING_FOR_SEAT,
+	SEATED_WAITING_FOR_FOOD,
+	EATING,
+	LEAVING,
+	GONE
+}
+
+var state: int = State.ENTERING
+var customer: CharacterBody3D
+var my_seat: Node3D = null
+var current_target: Node3D = null
+var tm: Node
+var _wait_timer: float = 0.0
+var _has_ordered: bool = false
+var _food_received: bool = false
+var _delivery_reservation: Variant = null
+
+func _ready() -> void:
+	customer = get_parent() as CharacterBody3D
+	tm = get_node("/root/TaskManager")
+	if customer != null and customer.has_signal("arrived_at_target"):
+		var arrival_callback := Callable(self, "_on_customer_arrived_at_target")
+		if not customer.arrived_at_target.is_connected(arrival_callback):
+			customer.arrived_at_target.connect(arrival_callback)
+	call_deferred("_start_ai")
+
+func _start_ai() -> void:
+	# Immediately find seat before entering if we want to ensure capacity, but let's just go to register first
+	current_target = _find_register_approach()
+	if current_target != null:
+		state = State.WAITING_FOR_REGISTER
+		_move_to(current_target.global_position)
+	else:
+		_leave()
+
+func _physics_process(delta: float) -> void:
+	if customer == null or not is_instance_valid(customer): return
+	
+	if state == State.WAITING_FOR_REGISTER:
+		if _is_at_target():
+			state = State.ORDERING
+			_wait_timer = 2.0 # Wait a bit before order is placed if no worker, but worker should come
+			tm.add_task(tm.TaskType.PROCESS_ORDER, {"customer": self, "register_marker": current_target})
+			
+	elif state == State.ORDERING:
+		if _has_ordered:
+			_wait_timer -= delta
+			if _wait_timer <= 0:
+				_find_seat()
+				
+	elif state == State.WAITING_FOR_SEAT:
+		if not customer.has_method("sit_at_seat") and _is_at_target():
+			_snap_customer_to_seat()
+			
+	elif state == State.SEATED_WAITING_FOR_FOOD:
+		if _food_received:
+			state = State.EATING
+			_wait_timer = 5.0 # Eat for 5 seconds
+			
+	elif state == State.EATING:
+		_wait_timer -= delta
+		if _wait_timer <= 0:
+			var rm = get_node("/root/RestaurantManager")
+			rm.add_money(15.50) # Pay
+			_leave()
+			
+	elif state == State.LEAVING:
+		if _is_at_target():
+			state = State.GONE
+			var cm = customer.get_parent()
+			if cm and cm.has_method("customer_left"):
+				cm.customer_left()
+			clear_delivery_reservation()
+			customer.queue_free()
+
+func _is_at_target() -> bool:
+	if current_target == null: return false
+	var target_pos = current_target.global_position
+	var my_pos = customer.global_position
+	target_pos.y = 0
+	my_pos.y = 0
+	var dist = my_pos.distance_to(target_pos)
+	return dist < 1.2 # Tolerance
+
+func take_order(worker: Node) -> void:
+	if _has_ordered: return
+	_has_ordered = true
+	
+	var level = customer.get_tree().current_scene
+	var prep_station = level.find_child("BurgerPrepStation", true, false)
+	var fryer_station = level.find_child("Fryer_1", true, false)
+	var food_table = level.find_child("FoodTable", true, false)
+	
+	if food_table != null:
+		if randf() > 0.5 and prep_station != null:
+			tm.add_task(tm.TaskType.ASSEMBLE_BURGER, {"station": prep_station, "food_table": food_table, "customer": self})
+		elif fryer_station != null:
+			tm.add_task(tm.TaskType.FRY_FRIES, {"station": fryer_station, "food_table": food_table, "customer": self})
+
+func can_accept_delivery_task(reservation: Variant = null) -> bool:
+	if _food_received:
+		return false
+	if state == State.LEAVING or state == State.GONE:
+		return false
+	if customer == null or not is_instance_valid(customer):
+		return false
+	return _delivery_reservation == null or _delivery_reservation == reservation
+
+func reserve_delivery(reservation: Variant) -> bool:
+	if not can_accept_delivery_task(reservation):
+		return false
+	_delivery_reservation = reservation
+	return true
+
+func clear_delivery_reservation(reservation: Variant = null) -> void:
+	if reservation == null or _delivery_reservation == reservation:
+		_delivery_reservation = null
+
+func has_received_food() -> bool:
+	return _food_received
+
+func get_delivery_reservation_label() -> String:
+	if _delivery_reservation == null:
+		return "none"
+	if _delivery_reservation is Object and is_instance_valid(_delivery_reservation):
+		return str((_delivery_reservation as Object).get_instance_id())
+	return str(_delivery_reservation)
+
+func receive_food(reservation: Variant = null) -> bool:
+	if not can_accept_delivery_task(reservation):
+		return false
+	_food_received = true
+	clear_delivery_reservation(reservation)
+	return true
+
+func _find_seat() -> void:
+	var level = customer.get_tree().current_scene
+	var seating_map = level.find_child("SeatingMap", true, false)
+	if seating_map == null: 
+		_leave()
+		return
+		
+	var seats: Array[Node3D] = []
+	_collect_seat_markers(seating_map, seats)
+	
+	for seat in seats:
+		# Simple: just pick random for now, ignore if occupied (would need tracking)
+		my_seat = seat
+		break
+		
+	if my_seat != null:
+		_send_customer_to_seat(my_seat)
+	else:
+		_leave()
+
+func _leave() -> void:
+	state = State.LEAVING
+	clear_delivery_reservation()
+	if customer.has_method("stand_up"):
+		customer.call("stand_up")
+
+	var level = customer.get_tree().current_scene
+	var spawn_point = level.find_child("Door_01", true, false)
+	if spawn_point != null:
+		current_target = spawn_point
+		_move_to(spawn_point.global_position)
+	else:
+		# Fallback
+		var cm = customer.get_parent()
+		if cm and cm.has_method("customer_left"):
+			cm.customer_left()
+		clear_delivery_reservation()
+		customer.queue_free()
+
+func _move_to(target_pos: Vector3) -> void:
+	var nav_map = customer.get_world_3d().navigation_map
+	var closest_point = NavigationServer3D.map_get_closest_point(nav_map, target_pos)
+	if customer.has_method("set_navigation_target"):
+		customer.call("set_navigation_target", closest_point)
+
+func _send_customer_to_seat(seat: Node3D) -> void:
+	state = State.WAITING_FOR_SEAT
+	current_target = _get_seat_approach_marker(seat)
+	if current_target == null:
+		current_target = seat
+
+	if customer.has_method("sit_at_seat"):
+		customer.call("sit_at_seat", seat)
+	else:
+		_move_to(current_target.global_position)
+
+func _on_customer_arrived_at_target(_target_position: Vector3) -> void:
+	if state == State.WAITING_FOR_SEAT:
+		_mark_customer_seated()
+
+func _snap_customer_to_seat() -> void:
+	if my_seat == null:
+		_leave()
+		return
+	customer.global_position = my_seat.global_position
+	customer.rotation.y = my_seat.global_transform.basis.get_euler().y
+	_mark_customer_seated()
+
+func _mark_customer_seated() -> void:
+	state = State.SEATED_WAITING_FOR_FOOD
+
+func _find_register_approach() -> Node3D:
+	var level = customer.get_tree().current_scene
+	var seating_map = level.find_child("SeatingMap", true, false)
+	if seating_map == null: return null
+	var approaches: Array[Node3D] = []
+	_collect_register_markers(seating_map, "Approach", approaches)
+	if approaches.is_empty(): return null
+	return approaches[randi() % approaches.size()]
+
+func _collect_register_markers(node: Node, marker_suffix: String, markers: Array[Node3D]) -> void:
+	if node is Node3D:
+		var node_name = String(node.name)
+		if node_name.begins_with("CashRegister_") and node_name.ends_with("_" + marker_suffix):
+			markers.append(node as Node3D)
+	for child in node.get_children():
+		_collect_register_markers(child, marker_suffix, markers)
+
+func _collect_seat_markers(node: Node, markers: Array[Node3D]) -> void:
+	if node is Node3D:
+		var node_name = String(node.name)
+		if node_name.contains("_Seat_") and not bool((node as Node3D).get_meta("occupied", false)):
+			markers.append(node as Node3D)
+	for child in node.get_children():
+		_collect_seat_markers(child, markers)
+
+func _get_seat_approach_marker(seat: Node3D) -> Node3D:
+	if seat == null or not seat.has_meta("approach_path"):
+		return null
+
+	var approach_path := seat.get_meta("approach_path") as NodePath
+	return seat.get_node_or_null(approach_path) as Node3D

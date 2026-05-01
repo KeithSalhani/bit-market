@@ -1,5 +1,7 @@
 extends CharacterBody3D
 
+signal arrived_at_target(target_position: Vector3)
+
 @export var move_speed := 4.5
 @export var acceleration := 18.0
 @export var deceleration := 22.0
@@ -16,6 +18,7 @@ extends CharacterBody3D
 @export var seated_animation: StringName = &"custom/sit_down"
 @export var unisex_seated_animation_keywords: PackedStringArray = ["carla", "man"]
 @export var female_seated_animation_keywords: PackedStringArray = ["woman"]
+@export var seated_visual_height_offset := -1
 
 @onready var navigation_agent: NavigationAgent3D = $NavigationAgent3D
 
@@ -37,6 +40,8 @@ var _target_approach: Node3D = null
 var _target_approach_transform := Transform3D.IDENTITY
 var visual_node: Node3D = null
 var animation_player: AnimationPlayer = null
+var _active_seated_animation: StringName = StringName()
+var _visual_rest_position := Vector3.ZERO
 
 func _ready() -> void:
 	_refresh_visual_references()
@@ -47,9 +52,13 @@ func _ready() -> void:
 
 func _refresh_visual_references() -> void:
 	visual_node = get_node_or_null(visual_node_path) as Node3D
+	if visual_node != null:
+		_visual_rest_position = visual_node.position
 	animation_player = get_node_or_null(animation_player_path) as AnimationPlayer
 
 func set_navigation_target(target_position: Vector3) -> void:
+	_active_seated_animation = StringName()
+	_reset_visual_seated_offset()
 	_release_target_seat()
 	_state = NpcState.MOVING
 	_set_navigation_target(target_position)
@@ -91,7 +100,9 @@ func stand_up() -> void:
 	rotation.y = _target_approach_transform.basis.get_euler().y
 	if visual_node != null:
 		visual_node.rotation.y = 0.0
+	_reset_visual_seated_offset()
 	_release_target_seat()
+	_active_seated_animation = StringName()
 	_state = NpcState.IDLE
 	_has_target = false
 	_play_animation(idle_animation)
@@ -101,6 +112,27 @@ func _set_navigation_target(target_position: Vector3) -> void:
 	_has_target = true
 	if print_debug_messages:
 		print("NPC target received: ", target_position, " from ", global_position)
+	
+	if _is_navigation_target_reached():
+		_on_target_reached_immediate()
+
+func _on_target_reached_immediate() -> void:
+	# Use call_deferred to ensure signals are consistent
+	call_deferred("_handle_arrival")
+
+func _handle_arrival() -> void:
+	if not _has_target: return
+	if print_debug_messages:
+		print("NPC navigation finished at: ", global_position)
+	var target_pos = navigation_agent.target_position
+	if _state == NpcState.MOVING_TO_SEAT:
+		_finish_sitting()
+		arrived_at_target.emit(target_pos)
+		return
+	_has_target = false
+	if _state == NpcState.MOVING:
+		_state = NpcState.IDLE
+	arrived_at_target.emit(target_pos)
 
 func clear_navigation_target() -> void:
 	_has_target = false
@@ -113,19 +145,13 @@ func _physics_process(delta: float) -> void:
 
 	if _state == NpcState.SEATED:
 		velocity = Vector3.ZERO
+		_keep_seated_animation_playing()
 		return
 
 	var direction := Vector3.ZERO
 
 	if _has_target and _is_navigation_target_reached():
-		if _has_target and print_debug_messages:
-			print("NPC navigation finished at: ", global_position)
-		if _state == NpcState.MOVING_TO_SEAT:
-			_finish_sitting()
-			return
-		_has_target = false
-		if _state == NpcState.MOVING:
-			_state = NpcState.IDLE
+		_handle_arrival()
 	elif _has_target:
 		var next_path_position := navigation_agent.get_next_path_position()
 		direction = next_path_position - global_position
@@ -154,12 +180,11 @@ func _physics_process(delta: float) -> void:
 	_update_animation(direction)
 
 func _is_navigation_target_reached() -> bool:
-	if navigation_agent.is_navigation_finished():
-		return true
-
 	var target_offset := navigation_agent.target_position - global_position
 	target_offset.y = 0.0
-	return target_offset.length() <= stopping_distance
+	if target_offset.length() <= stopping_distance:
+		return true
+	return navigation_agent.is_navigation_finished()
 
 func _finish_sitting() -> void:
 	_has_target = false
@@ -169,12 +194,17 @@ func _finish_sitting() -> void:
 	rotation.y = _target_seat_transform.basis.get_euler().y
 	if visual_node != null:
 		visual_node.rotation.y = 0.0
+		visual_node.position = _visual_rest_position + Vector3.UP * seated_visual_height_offset
 	_state = NpcState.SEATED
+	if animation_player != null:
+		animation_player.speed_scale = 1.0
 	var resolved_seated_animation := _select_seated_animation()
-	if not _play_animation(resolved_seated_animation):
+	if not _play_seated_animation(resolved_seated_animation):
 		_play_animation(idle_animation)
+	else:
+		_active_seated_animation = resolved_seated_animation
 	if print_debug_messages and _target_seat != null:
-		print("NPC seated at: ", _target_seat.get_path())
+		print("NPC seated at: ", _target_seat.get_path(), " animation: ", resolved_seated_animation)
 
 func _release_target_seat() -> void:
 	if _target_seat == null:
@@ -185,6 +215,10 @@ func _release_target_seat() -> void:
 	_target_seat = null
 	_target_approach = null
 
+func _reset_visual_seated_offset() -> void:
+	if visual_node != null:
+		visual_node.position = _visual_rest_position
+
 func _get_seat_approach_marker(seat: Node3D) -> Node3D:
 	if not seat.has_meta("approach_path"):
 		return null
@@ -193,6 +227,9 @@ func _get_seat_approach_marker(seat: Node3D) -> Node3D:
 	return seat.get_node_or_null(approach_path) as Node3D
 
 func _select_seated_animation() -> StringName:
+	if _can_play_animation(seated_animation):
+		return seated_animation
+
 	if _uses_female_seated_animations():
 		var female_animation := _find_seated_animation(female_seated_animation_keywords, false)
 		if not female_animation.is_empty():
@@ -203,6 +240,9 @@ func _select_seated_animation() -> StringName:
 		return unisex_animation
 
 	return seated_animation
+
+func _can_play_animation(animation_name: StringName) -> bool:
+	return not _resolve_animation_name(animation_name).is_empty()
 
 func _find_seated_animation(keywords: PackedStringArray, exclude_female_only: bool) -> StringName:
 	if animation_player == null:
@@ -250,6 +290,38 @@ func _play_animation(animation_name: StringName, blend: float = 0.15) -> bool:
 		return true
 	animation_player.play(resolved_name, blend)
 	return true
+
+func _play_seated_animation(animation_name: StringName) -> bool:
+	if animation_player == null:
+		return false
+
+	var resolved_name := _resolve_animation_name(animation_name)
+	if resolved_name.is_empty():
+		push_warning("Animation not found: %s" % String(animation_name))
+		return false
+
+	var animation := animation_player.get_animation(resolved_name)
+	if animation != null:
+		animation.loop_mode = Animation.LOOP_LINEAR
+
+	if animation_player.current_animation == resolved_name and animation_player.is_playing():
+		return true
+	animation_player.play(resolved_name, 0.0)
+	animation_player.seek(0.0, true)
+	return true
+
+func _keep_seated_animation_playing() -> void:
+	if _active_seated_animation.is_empty():
+		return
+	if animation_player == null:
+		return
+	var resolved_name := _resolve_animation_name(_active_seated_animation)
+	if resolved_name.is_empty():
+		return
+	if animation_player.current_animation == resolved_name and animation_player.is_playing():
+		return
+	if not _play_seated_animation(_active_seated_animation):
+		_active_seated_animation = StringName()
 
 func _resolve_animation_name(animation_name: StringName) -> StringName:
 	if animation_player == null:

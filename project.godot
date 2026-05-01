@@ -11,9 +11,17 @@ config_version=5
 [application]
 
 config/name="bit-market"
-run/main_scene="uid://dc73jdecolbdb"
+run/main_scene="res://scenes/world/burger_level.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://assets/characters/icon.svg"
+
+[autoload]
+
+McpInteractionServer="*res://mcp_interaction_server.gd"
+
+TaskManager="*res://src/core/task_manager.gd"
+HUD="*res://scenes/ui/hud.tscn"
+RestaurantManager="*res://src/core/restaurant_manager.gd"
 
 [input]
 

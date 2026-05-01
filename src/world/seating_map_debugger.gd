@@ -132,16 +132,16 @@ func _build_table_group(table_number: int, table_group: Dictionary) -> void:
 	var seat_number := 1
 	for source_chair in source_chairs:
 		var chair_node := source_chair as Node3D
-		_add_seat(table_root, table_number, seat_number, chair_node, chair_node.global_position, chair_node.global_transform.basis, approach_markers)
+		_add_seat(table_root, table_number, seat_number, chair_node, chair_node.global_position, chair_node.global_transform.basis, source_table.global_position, approach_markers)
 		seat_number += 1
 
 	for source_armchair in source_armchairs:
 		var armchair_node := source_armchair as Node3D
 		var armchair_basis := armchair_node.global_transform.basis
 		var side_axis := armchair_basis.x.normalized()
-		_add_seat(table_root, table_number, seat_number, armchair_node, armchair_node.global_position - side_axis * armchair_seat_offset, armchair_basis, approach_markers)
+		_add_seat(table_root, table_number, seat_number, armchair_node, armchair_node.global_position - side_axis * armchair_seat_offset, armchair_basis, source_table.global_position, approach_markers)
 		seat_number += 1
-		_add_seat(table_root, table_number, seat_number, armchair_node, armchair_node.global_position + side_axis * armchair_seat_offset, armchair_basis, approach_markers)
+		_add_seat(table_root, table_number, seat_number, armchair_node, armchair_node.global_position + side_axis * armchair_seat_offset, armchair_basis, source_table.global_position, approach_markers)
 		seat_number += 1
 
 	table_root.set_meta("seat_count", seat_number - 1)
@@ -244,20 +244,46 @@ func _add_editor_dot(parent: Node3D, dot_name: String, dot_color: Color) -> void
 	dot.material_override = material
 	parent.add_child(dot)
 
-func _add_seat(parent: Node3D, table_number: int, seat_number: int, source_seat: Node3D, seat_position: Vector3, seat_basis: Basis, approach_markers: Array[Marker3D]) -> void:
+func _add_seat(parent: Node3D, table_number: int, seat_number: int, source_seat: Node3D, seat_position: Vector3, seat_basis: Basis, table_position: Vector3, approach_markers: Array[Marker3D]) -> void:
 	var seat_marker := Marker3D.new()
 	seat_marker.name = "Table_%02d_Seat_%02d" % [table_number, seat_number]
 	parent.add_child(seat_marker)
-	seat_marker.global_transform = Transform3D(seat_basis, seat_position)
+	var final_position := _seat_marker_position(seat_position)
+	seat_marker.global_transform = Transform3D(_seat_basis_aligned_to_chair(final_position, table_position, seat_basis), final_position)
 	seat_marker.set_meta("source_seat", source_seat.get_path())
 	seat_marker.set_meta("table_id", table_number)
 	seat_marker.set_meta("seat_id", seat_number)
 	seat_marker.set_meta("occupied", false)
-	var approach_marker := _find_nearest_approach_marker(approach_markers, seat_position)
+	var approach_marker := _find_nearest_approach_marker(approach_markers, final_position)
 	if approach_marker != null:
 		seat_marker.set_meta("approach_path", seat_marker.get_path_to(approach_marker))
 
-	_add_label(seat_marker, "Label", "T%02d-S%02d" % [table_number, seat_number], seat_position + Vector3.UP * seat_label_height)
+	_add_label(seat_marker, "Label", "T%02d-S%02d" % [table_number, seat_number], final_position + Vector3.UP * seat_label_height)
+
+func _seat_marker_position(source_position: Vector3) -> Vector3:
+	var final_position := source_position
+	if Engine.is_editor_hint():
+		return final_position
+
+	var navigation_map := get_world_3d().navigation_map
+	if NavigationServer3D.map_get_iteration_id(navigation_map) != 0:
+		final_position = NavigationServer3D.map_get_closest_point(navigation_map, source_position)
+	final_position.y += seat_marker_height
+	return final_position
+
+func _seat_basis_aligned_to_chair(seat_position: Vector3, table_position: Vector3, seat_basis: Basis) -> Basis:
+	var chair_forward := seat_basis.z
+	chair_forward.y = 0.0
+	if chair_forward.length() < 0.001:
+		chair_forward = Vector3.FORWARD
+	chair_forward = chair_forward.normalized()
+
+	var table_direction := table_position - seat_position
+	table_direction.y = 0.0
+	if table_direction.length() > 0.001 and chair_forward.dot(table_direction.normalized()) < 0.0:
+		chair_forward = -chair_forward
+
+	return Basis.from_euler(Vector3(0.0, atan2(chair_forward.x, chair_forward.z), 0.0))
 
 func _find_nearest_approach_marker(approach_markers: Array[Marker3D], seat_position: Vector3) -> Marker3D:
 	var nearest_marker: Marker3D = null

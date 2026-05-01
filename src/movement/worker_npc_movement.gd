@@ -50,6 +50,8 @@ func set_navigation_target(target_position: Vector3) -> void:
 	_current_target = target_position
 	_has_target = true
 	_has_look_target = false
+	if _is_navigation_target_reached():
+		_handle_arrival_immediate()
 
 func set_navigation_target_with_look_target(target_position: Vector3, look_target: Vector3) -> void:
 	_leave_station_snap()
@@ -58,6 +60,8 @@ func set_navigation_target_with_look_target(target_position: Vector3, look_targe
 	_look_target = look_target
 	_has_target = true
 	_has_look_target = true
+	if _is_navigation_target_reached():
+		_handle_arrival_immediate()
 
 func set_navigation_target_without_leaving_station(target_position: Vector3, look_target: Variant = null) -> void:
 	navigation_agent.target_position = target_position
@@ -68,6 +72,8 @@ func set_navigation_target_without_leaving_station(target_position: Vector3, loo
 		_has_look_target = true
 	else:
 		_has_look_target = false
+	if _is_navigation_target_reached():
+		_handle_arrival_immediate()
 
 func snap_to_station(snap_marker: Node3D, exit_marker: Node3D = null) -> void:
 	if snap_marker == null:
@@ -85,6 +91,19 @@ func clear_navigation_target() -> void:
 	_has_target = false
 	_has_look_target = false
 
+func _handle_arrival_immediate() -> void:
+	call_deferred("_handle_arrival")
+
+func _handle_arrival() -> void:
+	if not _has_target: return
+	_has_target = false
+	if _has_look_target:
+		var face_dir := _look_target - global_position
+		face_dir.y = 0.0
+		if face_dir.length() > 0.01:
+			visual_node.rotation.y = atan2(face_dir.x, face_dir.z)
+	arrived_at_target.emit(_current_target)
+
 func _physics_process(delta: float) -> void:
 	if _is_snapped_to_station:
 		velocity = Vector3.ZERO
@@ -94,10 +113,7 @@ func _physics_process(delta: float) -> void:
 	var direction := Vector3.ZERO
 
 	if _has_target and _is_navigation_target_reached():
-		_has_target = false
-		if _has_look_target:
-			_face_target(_look_target, delta)
-		arrived_at_target.emit(_current_target)
+		_handle_arrival()
 	elif _has_target:
 		var next_path_position := navigation_agent.get_next_path_position()
 		direction = next_path_position - global_position
@@ -124,12 +140,11 @@ func _physics_process(delta: float) -> void:
 	_update_worker_animation(direction)
 
 func _is_navigation_target_reached() -> bool:
-	if navigation_agent.is_navigation_finished():
-		return true
-
 	var target_offset := navigation_agent.target_position - global_position
 	target_offset.y = 0.0
-	return target_offset.length() <= stopping_distance
+	if target_offset.length() <= stopping_distance:
+		return true
+	return navigation_agent.is_navigation_finished()
 
 func _face_target(target_position: Vector3, delta: float) -> void:
 	var direction := target_position - global_position

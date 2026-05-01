@@ -36,6 +36,14 @@ func get_available_food_capacity() -> int:
 			open_slots += 1
 	return open_slots
 
+func get_first_food_item() -> Node3D:
+	for index in range(_stored_food_items.size()):
+		var food_item := _stored_food_items[index]
+		if food_item != null and is_instance_valid(food_item):
+			_stored_food_items[index] = null
+			return food_item
+	return null
+
 func get_next_food_position() -> Vector3:
 	var slot_index := _get_next_open_slot()
 	if slot_index == -1:
@@ -53,11 +61,17 @@ func store_food_item(food_item: Node3D) -> bool:
 	if slot_index == -1:
 		return false
 
-	var stored_global_scale := food_item.global_transform.basis.get_scale()
-	food_item.reparent(self, true)
+	var stored_global_scale := food_item.scale
+	if food_item.is_inside_tree():
+		stored_global_scale = food_item.global_transform.basis.get_scale()
+		food_item.reparent(self, true)
+	else:
+		add_child(food_item)
+
 	food_item.global_position = _get_slot_position(slot_index)
 	food_item.global_rotation = Vector3.ZERO
-	_apply_global_scale(food_item, stored_global_scale)
+	if food_item.is_inside_tree():
+		_apply_global_scale(food_item, stored_global_scale)
 	food_item.visible = true
 	_stored_food_items[slot_index] = food_item
 	return true

@@ -34,9 +34,27 @@ var _current_burger: Node3D
 var _stored_burgers: Array[Node3D] = []
 var _full_label: Label3D
 var _using_explicit_reach_target := false
+var _is_busy := false
+var _reserved_worker: Node = null
 
 func _ready() -> void:
 	_prepare_storage_visuals()
+
+func is_available() -> bool:
+	return not _is_busy
+
+func reserve_for(worker: Node) -> bool:
+	if _is_busy and _reserved_worker != worker:
+		return false
+	_is_busy = true
+	_reserved_worker = worker
+	return true
+
+func release_reservation(worker: Node = null) -> void:
+	if worker != null and _reserved_worker != null and _reserved_worker != worker:
+		return
+	_is_busy = false
+	_reserved_worker = null
 
 func get_stand_point() -> Node3D:
 	return get_snap_point()
@@ -80,18 +98,29 @@ func assemble_default_burger(worker: Node) -> bool:
 	return await assemble_burger(worker, default_recipe)
 
 func assemble_burger(worker: Node, recipe: PackedStringArray) -> bool:
+	if _is_busy and _reserved_worker != worker:
+		return false
+	var auto_reserved := false
+	if not _is_busy:
+		if not reserve_for(worker):
+			return false
+		auto_reserved = true
+
 	if is_burger_storage_full():
 		show_storage_full()
+		_release_auto_reservation(worker, auto_reserved)
 		return false
 
 	var assembly_point := get_assembly_point()
 	if assembly_point == null:
 		push_warning("Burger prep station cannot assemble: BurgerAssemblyPoint is missing.")
+		_release_auto_reservation(worker, auto_reserved)
 		return false
 
 	var reach_controller := _get_reach_controller(worker)
 	if reach_controller == null or not reach_controller.has_method("can_reach") or not bool(reach_controller.call("can_reach")):
 		push_warning("Burger prep station cannot assemble: selected worker has no configured right-hand IK reach controller.")
+		_release_auto_reservation(worker, auto_reserved)
 		return false
 
 	_clear_current_burger()
@@ -114,6 +143,7 @@ func assemble_burger(worker: Node, recipe: PackedStringArray) -> bool:
 			continue
 
 		if ingredient_name == "meat" and not await ensure_cooked_meat(worker, reach_controller):
+			_release_auto_reservation(worker, auto_reserved)
 			return false
 
 		var pickup_position := target.global_position if _using_explicit_reach_target else _get_ingredient_contact_position(target)
@@ -131,6 +161,7 @@ func assemble_burger(worker: Node, recipe: PackedStringArray) -> bool:
 	_spawn_layer("top_bun", layer_index)
 	_replace_with_finished_burger(assembly_point)
 	await _store_finished_burger(worker, reach_controller)
+	_release_auto_reservation(worker, auto_reserved)
 	return true
 
 func is_burger_storage_full() -> bool:
@@ -190,6 +221,9 @@ func debug_create_finished_burger() -> bool:
 	return true
 
 func pick_finished_burger_for_transport(worker: Node) -> Node3D:
+	if _is_busy and _reserved_worker != worker:
+		return null
+
 	var burger := _peek_next_finished_burger()
 	if burger == null:
 		return null
@@ -215,35 +249,15 @@ func ensure_cooked_meat(worker: Node, reach_controller: Node = null) -> bool:
 	if cooked_meat_stock > 0:
 		return true
 
-	if reach_controller == null:
-		reach_controller = _get_reach_controller(worker)
-	if reach_controller == null:
-		push_warning("Burger prep station cannot grill meat: selected worker has no right-hand IK reach controller.")
-		return false
-
-	var grill_station := _get_grill_station()
-	if grill_station == null:
-		push_warning("Burger prep station cannot grill meat: Grill002Station is missing.")
-		return false
-	if not grill_station.has_method("cook_meat"):
-		push_warning("Burger prep station cannot grill meat: configured grill station has no cook_meat method.")
-		return false
-
-	var cooked_count: int = int(await grill_station.call("cook_meat", worker, _get_raw_meat_pickup_position(), reach_controller))
-	if cooked_count <= 0:
-		return false
-	stock_cooked_meat(cooked_count)
-
-	if not await _navigate_worker_to(worker, get_entrance_point().global_position, get_look_target()):
-		return false
-
-	var prep_snap := get_snap_point()
-	var prep_exit := get_exit_point()
-	if prep_snap != null and worker.has_method("snap_to_station"):
-		worker.call("snap_to_station", prep_snap, prep_exit)
-	return true
+	# We no longer want the prep station to forcefully cook the meat itself.
+	# We want the task manager to handle COOK_MEAT tasks explicitly.
+	return false
 
 func _spawn_layer(layer_name: String, layer_index: int) -> void:
+	if _current_burger == null or not is_instance_valid(_current_burger):
+		push_warning("Burger prep station cannot add '%s': no active assembled burger." % layer_name)
+		return
+
 	if not FOOD_SCENES.has(layer_name):
 		push_warning("Burger prep station has no prop scene for '%s'." % layer_name)
 		return
@@ -256,6 +270,10 @@ func _spawn_layer(layer_name: String, layer_index: int) -> void:
 	layer.name = layer_name
 	_current_burger.add_child(layer)
 	layer.transform = _get_layer_transform(layer_index, layer_name)
+
+func _release_auto_reservation(worker: Node, auto_reserved: bool) -> void:
+	if auto_reserved:
+		release_reservation(worker)
 
 func _get_layer_transform(layer_index: int, _layer_name: String) -> Transform3D:
 	var layer_basis := Basis(Vector3.RIGHT, -PI * 0.5).scaled(Vector3.ONE * layer_scale)

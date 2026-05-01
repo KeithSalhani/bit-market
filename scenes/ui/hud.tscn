@@ -1,0 +1,60 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://src/core/hud.gd" id="1_0mwgc"]
+[ext_resource type="Script" path="res://src/core/debug_menu.gd" id="2_hqnrr"]
+
+[node name="root" type="CanvasLayer" unique_id=1874196036]
+script = ExtResource("1_0mwgc")
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=110297363]
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=1647324969]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=1371741402]
+layout_mode = 2
+
+[node name="MoneyLabel" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=1777239700]
+layout_mode = 2
+
+[node name="TimeLabel" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=973480106]
+layout_mode = 2
+
+[node name="DayLabel" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=968948687]
+layout_mode = 2
+
+[node name="OpenButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=1661421210]
+layout_mode = 2
+
+[node name="HireButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=916674640]
+layout_mode = 2
+
+[node name="DebugMenu" type="PanelContainer" parent="." unique_id=415479304]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -33.0
+offset_top = -33.0
+offset_right = 33.0
+offset_bottom = 33.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("2_hqnrr")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="DebugMenu" unique_id=2100977458]
+layout_mode = 2
+
+[node name="MaxCustomersContainer" type="HBoxContainer" parent="DebugMenu/VBoxContainer" unique_id=837140804]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="DebugMenu/VBoxContainer/MaxCustomersContainer" unique_id=763626077]
+layout_mode = 2
+text = "Max Customers:"
+
+[node name="SpinBox" type="SpinBox" parent="DebugMenu/VBoxContainer/MaxCustomersContainer" unique_id=1836018089]
+layout_mode = 2
+
+[node name="WorkersContainer" type="VBoxContainer" parent="DebugMenu/VBoxContainer" unique_id=1039993802]
+layout_mode = 2

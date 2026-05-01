@@ -1,0 +1,84 @@
+extends Node
+
+signal money_changed(amount: float)
+signal time_changed(current_time: float)
+signal day_changed(current_day: int)
+signal open_state_changed(is_open: bool)
+
+@export var starting_money: float = 1000.0
+@export var day_duration_seconds: float = 120.0
+@export var start_time_of_day: float = 8.0 # 8:00 AM
+@export var end_time_of_day: float = 22.0 # 10:00 PM
+
+var money: float = 0.0
+var time_of_day: float = 0.0 # Range: start_time_of_day to end_time_of_day
+var current_day: int = 1
+var is_open: bool = false
+var _time_accumulator: float = 0.0
+
+func _ready() -> void:
+	money = starting_money
+	time_of_day = start_time_of_day
+	emit_signal("money_changed", money)
+	emit_signal("time_changed", time_of_day)
+	emit_signal("day_changed", current_day)
+	emit_signal("open_state_changed", is_open)
+
+func _process(delta: float) -> void:
+	if not is_open:
+		return
+
+	_time_accumulator += delta
+	var time_fraction = _time_accumulator / day_duration_seconds
+	time_of_day = start_time_of_day + (end_time_of_day - start_time_of_day) * time_fraction
+
+	emit_signal("time_changed", time_of_day)
+
+	if time_of_day >= end_time_of_day:
+		close_restaurant()
+		_end_of_day_processing()
+
+func open_restaurant() -> void:
+	if is_open: return
+	
+	is_open = true
+	time_of_day = start_time_of_day
+	_time_accumulator = 0.0
+	emit_signal("open_state_changed", is_open)
+	emit_signal("time_changed", time_of_day)
+
+func close_restaurant() -> void:
+	if not is_open: return
+	
+	is_open = false
+	emit_signal("open_state_changed", is_open)
+
+func _end_of_day_processing() -> void:
+	# Calculate end of day expenses here (wages, etc) in the future
+	current_day += 1
+	emit_signal("day_changed", current_day)
+
+func add_money(amount: float) -> void:
+	if amount <= 0: return
+	money += amount
+	emit_signal("money_changed", money)
+
+func spend_money(amount: float) -> bool:
+	if amount <= 0: return true
+	if money >= amount:
+		money -= amount
+		emit_signal("money_changed", money)
+		return true
+	return false
+
+func get_time_string() -> String:
+	var hours = floori(time_of_day)
+	var minutes = floori((time_of_day - hours) * 60.0)
+	var am_pm = "AM" if hours < 12 else "PM"
+	var display_hours = hours
+	if display_hours > 12:
+		display_hours -= 12
+	elif display_hours == 0:
+		display_hours = 12
+	
+	return "%02d:%02d %s" % [display_hours, minutes, am_pm]
