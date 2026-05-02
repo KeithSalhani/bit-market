@@ -15,6 +15,7 @@ extends Node3D
 @export var ingredient_contact_height := 0.12
 @export var ingredient_front_offset := 0.16
 @export var burger_place_height := 0.18
+@export var prep_hand_target_rotation_degrees := Vector3(-90.0, 0.0, 90.0)
 @export var burger_storage_spacing := Vector2(0.22, 0.22)
 @export var default_recipe := PackedStringArray(["meat", "cheese", "pickles", "onion", "lettuce"])
 
@@ -149,7 +150,7 @@ func assemble_burger(worker: Node, recipe: PackedStringArray) -> bool:
 		var pickup_position := target.global_position if _using_explicit_reach_target else _get_ingredient_contact_position(target)
 		var place_position := _get_burger_place_position(layer_index)
 		if reach_controller.has_method("pick_and_place"):
-			await reach_controller.call("pick_and_place", pickup_position, place_position)
+			await reach_controller.call("pick_and_place", pickup_position, place_position, place_position, prep_hand_target_rotation_degrees)
 		else:
 			await reach_controller.call("reach_to", pickup_position)
 			await reach_controller.call("reach_to", place_position)

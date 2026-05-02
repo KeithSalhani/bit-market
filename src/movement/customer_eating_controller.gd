@@ -21,6 +21,10 @@ var _ik: SkeletonIK3D
 var _target: Node3D
 var _active := false
 var _loop_id := 0
+var _root_bone_index := -1
+var _tip_bone_index := -1
+var _head_bone_index := -1
+var _right_shoulder_bone_index := -1
 
 func start_eating() -> void:
 	if _active:
@@ -38,9 +42,6 @@ func stop_eating() -> void:
 	_loop_id += 1
 	if _ik != null:
 		_ik.stop()
-
-func is_eating() -> bool:
-	return _active
 
 func _run_eating_loop(loop_id: int) -> void:
 	while _active and loop_id == _loop_id and is_inside_tree():
@@ -73,11 +74,11 @@ func _configure_ik() -> bool:
 	if _ik != null and is_instance_valid(_ik) and _target != null and is_instance_valid(_target):
 		return true
 
-	var root_index := _skeleton.find_bone(root_bone)
-	var tip_index := _skeleton.find_bone(tip_bone)
-	var head_index := _skeleton.find_bone(head_bone)
-	var shoulder_index := _skeleton.find_bone(right_shoulder_bone)
-	if root_index == -1 or tip_index == -1 or head_index == -1 or shoulder_index == -1:
+	_root_bone_index = _skeleton.find_bone(root_bone)
+	_tip_bone_index = _skeleton.find_bone(tip_bone)
+	_head_bone_index = _skeleton.find_bone(head_bone)
+	_right_shoulder_bone_index = _skeleton.find_bone(right_shoulder_bone)
+	if _root_bone_index == -1 or _tip_bone_index == -1 or _head_bone_index == -1 or _right_shoulder_bone_index == -1:
 		push_warning("Customer eating controller cannot find bones '%s', '%s', '%s', '%s'." % [root_bone, tip_bone, head_bone, right_shoulder_bone])
 		return false
 
@@ -120,12 +121,10 @@ func _get_rest_global_position() -> Vector3:
 func _get_bite_global_position(rest_position: Vector3) -> Vector3:
 	if _skeleton == null or not is_instance_valid(_skeleton):
 		return rest_position
-	var head_index := _skeleton.find_bone(head_bone)
-	var shoulder_index := _skeleton.find_bone(right_shoulder_bone)
-	if head_index == -1 or shoulder_index == -1:
+	if _head_bone_index == -1 or _right_shoulder_bone_index == -1:
 		return rest_position
-	var head_transform := _skeleton.global_transform * _skeleton.get_bone_global_pose(head_index)
-	var shoulder_transform := _skeleton.global_transform * _skeleton.get_bone_global_pose(shoulder_index)
+	var head_transform := _skeleton.global_transform * _skeleton.get_bone_global_pose(_head_bone_index)
+	var shoulder_transform := _skeleton.global_transform * _skeleton.get_bone_global_pose(_right_shoulder_bone_index)
 	var character_basis := _get_character_basis()
 	var bite_anchor := shoulder_transform.origin.lerp(head_transform.origin, shoulder_to_head_amount)
 	bite_anchor += character_basis.y.normalized() * bite_height_offset
@@ -138,10 +137,9 @@ func _get_bite_global_position(rest_position: Vector3) -> Vector3:
 func _get_tip_global_position() -> Vector3:
 	if _skeleton == null or not is_instance_valid(_skeleton):
 		return global_position
-	var tip_index := _skeleton.find_bone(tip_bone)
-	if tip_index == -1:
+	if _tip_bone_index == -1:
 		return global_position
-	var tip_transform := _skeleton.global_transform * _skeleton.get_bone_global_pose(tip_index)
+	var tip_transform := _skeleton.global_transform * _skeleton.get_bone_global_pose(_tip_bone_index)
 	return tip_transform.origin
 
 func _get_character_basis() -> Basis:
@@ -153,10 +151,9 @@ func _get_character_basis() -> Basis:
 func _apply_chest_clearance(position: Vector3, clearance: float) -> Vector3:
 	if _skeleton == null or not is_instance_valid(_skeleton):
 		return position
-	var root_index := _skeleton.find_bone(root_bone)
-	if root_index == -1:
+	if _root_bone_index == -1:
 		return position
-	var root_transform := _skeleton.global_transform * _skeleton.get_bone_global_pose(root_index)
+	var root_transform := _skeleton.global_transform * _skeleton.get_bone_global_pose(_root_bone_index)
 	var character_basis := _get_character_basis()
 	var forward := character_basis.z.normalized()
 	var from_chest := position - root_transform.origin

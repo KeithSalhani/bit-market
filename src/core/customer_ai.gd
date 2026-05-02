@@ -37,7 +37,7 @@ const CUSTOMER_HAND_OFFSET := Vector3(0.0, -0.1, 0.04)
 func _ready() -> void:
 	customer = get_parent() as CharacterBody3D
 	tm = get_node("/root/TaskManager")
-	_eating_controller = customer.get_node_or_null(^"CustomerEatingController") if customer != null else null
+	_eating_controller = _get_eating_controller()
 	if customer != null and customer.has_signal("arrived_at_target"):
 		var arrival_callback := Callable(self, "_on_customer_arrived_at_target")
 		if not customer.arrived_at_target.is_connected(arrival_callback):
@@ -244,14 +244,21 @@ func _clear_held_food() -> void:
 	_held_food_item = null
 
 func _start_eating_motion() -> void:
-	if _eating_controller == null or not is_instance_valid(_eating_controller):
-		_eating_controller = customer.get_node_or_null(^"CustomerEatingController") if customer != null else null
+	_eating_controller = _get_eating_controller()
 	if _eating_controller != null and _eating_controller.has_method("start_eating"):
 		_eating_controller.call("start_eating")
 
 func _stop_eating_motion() -> void:
-	if _eating_controller != null and is_instance_valid(_eating_controller) and _eating_controller.has_method("stop_eating"):
+	_eating_controller = _get_eating_controller()
+	if _eating_controller != null and _eating_controller.has_method("stop_eating"):
 		_eating_controller.call("stop_eating")
+
+func _get_eating_controller() -> Node:
+	if _eating_controller != null and is_instance_valid(_eating_controller):
+		return _eating_controller
+	if customer == null or not is_instance_valid(customer):
+		return null
+	return customer.get_node_or_null(^"CustomerEatingController")
 
 func _find_skeleton(node: Node) -> Skeleton3D:
 	if node == null:
@@ -299,7 +306,6 @@ func _find_seat() -> void:
 
 func _leave() -> void:
 	state = State.LEAVING
-	_stop_eating_motion()
 	_release_register_slot()
 	clear_delivery_reservation()
 	_clear_held_food()
