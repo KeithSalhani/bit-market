@@ -30418,13 +30418,13 @@ mesh = SubResource("ArrayMesh_jp3kg")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="BurgerPiz2/Soda_fountain_01/StaticBody3D" unique_id=1894860932]
 shape = SubResource("ConcavePolygonShape3D_0m8bb")
 
-[node name="Table" type="MeshInstance3D" parent="BurgerPiz2" unique_id=1896900303]
+[node name="Table_000" type="MeshInstance3D" parent="BurgerPiz2" unique_id=1896900303]
 transform = Transform3D(0.22158474, 0, 0, 0, 0.22158474, 0, 0, 0, 0.22158474, -4.995571, 0, 21.868532)
 mesh = SubResource("ArrayMesh_7achm")
 
-[node name="StaticBody3D" type="StaticBody3D" parent="BurgerPiz2/Table" unique_id=811118255]
+[node name="StaticBody3D" type="StaticBody3D" parent="BurgerPiz2/Table_000" unique_id=811118255]
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="BurgerPiz2/Table/StaticBody3D" unique_id=1488346748]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BurgerPiz2/Table_000/StaticBody3D" unique_id=1488346748]
 shape = SubResource("ConcavePolygonShape3D_47a6j")
 
 [node name="Table_001" type="MeshInstance3D" parent="BurgerPiz2" unique_id=548734629]
@@ -33118,7 +33118,11 @@ shape = SubResource("ConcavePolygonShape3D_p51t7")
 
 [node name="SeatingMap" type="Node3D" parent="." unique_id=1480364303]
 script = ExtResource("4_vthih")
-indexed_table_seat_height_offset = 0.0
+table_seat_height_offset = 0.8
+regular_chair_table_seat_height_offset = 0.7
+chair_seat_toward_table_offset = 0.1
+seated_preview_table_ids = PackedInt32Array()
+seated_actor_height_offset = -1.4
 
 [node name="WorkerSpawnPoint" type="Marker3D" parent="." unique_id=1686686192]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.2792904, 0.4, 7.491147)

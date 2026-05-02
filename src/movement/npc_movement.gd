@@ -218,11 +218,14 @@ func _finish_sitting() -> void:
 	_has_target = false
 	velocity = Vector3.ZERO
 
-	global_position = _target_seat_transform.origin + Vector3.UP * sit_position_height_offset
+	var resolved_sit_position_height_offset := _get_seat_float_meta("sit_position_height_offset", sit_position_height_offset)
+	var resolved_seated_visual_height_offset := _get_seat_float_meta("seated_visual_height_offset", seated_visual_height_offset)
+
+	global_position = _target_seat_transform.origin + Vector3.UP * resolved_sit_position_height_offset
 	rotation.y = _target_seat_transform.basis.get_euler().y
 	if visual_node != null:
 		visual_node.rotation.y = 0.0
-		visual_node.position = _visual_rest_position + Vector3.UP * seated_visual_height_offset
+		visual_node.position = _visual_rest_position + Vector3.UP * resolved_seated_visual_height_offset
 	_state = NpcState.SEATED
 	if animation_player != null:
 		animation_player.speed_scale = 1.0
@@ -247,10 +250,19 @@ func _finish_sitting() -> void:
 			global_position,
 			" seat_height_offset: ",
 			seat_height_offset,
+			" sit_position_height_offset: ",
+			resolved_sit_position_height_offset,
+			" seated_visual_height_offset: ",
+			resolved_seated_visual_height_offset,
 			character_label,
 			" animation: ",
 			resolved_seated_animation
 		)
+
+func _get_seat_float_meta(meta_name: StringName, fallback: float) -> float:
+	if _target_seat == null or not _target_seat.has_meta(meta_name):
+		return fallback
+	return float(_target_seat.get_meta(meta_name))
 
 func _has_property(property_name: String) -> bool:
 	for property in get_property_list():

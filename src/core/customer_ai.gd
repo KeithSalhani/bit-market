@@ -24,6 +24,8 @@ var ordered_food_type := ""
 var _order_label: Label3D = null
 var _held_food_attachment: Node3D = null
 var _held_food_item: Node3D = null
+var _assigned_register_marker: Node3D = null
+var _register_task_requested := false
 
 const FOOD_BURGER := "burger"
 const FOOD_FRIES := "fries"
@@ -41,27 +43,51 @@ func _ready() -> void:
 	call_deferred("_start_ai")
 
 func _start_ai() -> void:
-	# Immediately find seat before entering if we want to ensure capacity, but let's just go to register first
-	current_target = _find_register_customer_point()
-	if current_target != null:
+	var cm := _get_customer_manager()
+	if cm != null and cm.has_method("request_register_slot"):
 		state = State.WAITING_FOR_REGISTER
-		_move_to(current_target.global_position, _get_register_look_target(current_target))
+		cm.call("request_register_slot", self)
 	else:
+		current_target = _find_register_customer_point()
+		if current_target != null:
+			go_to_register(current_target)
+		else:
+			_leave()
+
+func go_to_register(register_marker: Node3D) -> void:
+	if register_marker == null or not is_instance_valid(register_marker):
 		_leave()
+		return
+	_assigned_register_marker = register_marker
+	_register_task_requested = false
+	current_target = register_marker
+	state = State.WAITING_FOR_REGISTER
+	_move_to(register_marker.global_position, _get_register_look_target(register_marker))
+
+func wait_in_register_queue(queue_marker: Node3D, look_target: Vector3) -> void:
+	if queue_marker == null or not is_instance_valid(queue_marker):
+		return
+	if _assigned_register_marker != null and is_instance_valid(_assigned_register_marker):
+		return
+	current_target = queue_marker
+	state = State.WAITING_FOR_REGISTER
+	_move_to(queue_marker.global_position, look_target)
 
 func _physics_process(delta: float) -> void:
 	if customer == null or not is_instance_valid(customer): return
 	
 	if state == State.WAITING_FOR_REGISTER:
-		if _is_at_target():
+		if _assigned_register_marker != null and is_instance_valid(_assigned_register_marker) and _is_at_target() and not _register_task_requested:
 			state = State.ORDERING
 			_wait_timer = 2.0 # Wait a bit before order is placed if no worker, but worker should come
-			tm.add_task(tm.TaskType.PROCESS_ORDER, {"customer": self, "register_marker": current_target})
+			_register_task_requested = true
+			tm.add_task(tm.TaskType.PROCESS_ORDER, {"customer": self, "register_marker": _assigned_register_marker})
 			
 	elif state == State.ORDERING:
 		if _has_ordered:
 			_wait_timer -= delta
 			if _wait_timer <= 0:
+				_release_register_slot()
 				_find_seat()
 				
 	elif state == State.WAITING_FOR_SEAT:
@@ -257,6 +283,7 @@ func _find_seat() -> void:
 
 func _leave() -> void:
 	state = State.LEAVING
+	_release_register_slot()
 	clear_delivery_reservation()
 	_clear_held_food()
 	_set_order_label_visible(false)
@@ -296,6 +323,23 @@ func _move_to(target_pos: Vector3, look_target: Variant = null) -> void:
 		customer.call("set_navigation_target_with_look_target", closest_point, look_target)
 	elif customer.has_method("set_navigation_target"):
 		customer.call("set_navigation_target", closest_point)
+
+func _release_register_slot() -> void:
+	if _assigned_register_marker == null and not _register_task_requested:
+		var cm_queued := _get_customer_manager()
+		if cm_queued != null and cm_queued.has_method("release_register_slot"):
+			cm_queued.call("release_register_slot", self)
+		return
+	var cm := _get_customer_manager()
+	if cm != null and cm.has_method("release_register_slot"):
+		cm.call("release_register_slot", self)
+	_assigned_register_marker = null
+	_register_task_requested = false
+
+func _get_customer_manager() -> Node:
+	if customer == null:
+		return null
+	return customer.get_parent()
 
 func _send_customer_to_seat(seat: Node3D) -> void:
 	state = State.WAITING_FOR_SEAT
