@@ -16,6 +16,8 @@ signal arrived_at_target(target_position: Vector3)
 @export var move_animation: StringName = &"Running_A"
 @export var fall_animation: StringName = &"Jump_Full_Long"
 @export var seated_animation: StringName = &"custom/sit_down"
+@export var randomize_seated_animation := true
+@export_range(0.0, 1.0, 0.05) var seated_animation_height_compensation_scale := 0.5
 @export var unisex_seated_animation_keywords: PackedStringArray = ["carla", "man"]
 @export var female_seated_animation_keywords: PackedStringArray = ["woman"]
 @export var seated_visual_height_offset := -1
@@ -220,6 +222,8 @@ func _finish_sitting() -> void:
 
 	var resolved_sit_position_height_offset := _get_seat_float_meta("sit_position_height_offset", sit_position_height_offset)
 	var resolved_seated_visual_height_offset := _get_seat_float_meta("seated_visual_height_offset", seated_visual_height_offset)
+	var resolved_seated_animation := _select_seated_animation()
+	resolved_seated_visual_height_offset += _get_seated_animation_height_compensation(resolved_seated_animation)
 
 	global_position = _target_seat_transform.origin + Vector3.UP * resolved_sit_position_height_offset
 	rotation.y = _target_seat_transform.basis.get_euler().y
@@ -229,7 +233,6 @@ func _finish_sitting() -> void:
 	_state = NpcState.SEATED
 	if animation_player != null:
 		animation_player.speed_scale = 1.0
-	var resolved_seated_animation := _select_seated_animation()
 	if not _play_seated_animation(resolved_seated_animation):
 		_play_animation(idle_animation)
 	else:
@@ -291,6 +294,11 @@ func _get_seat_approach_marker(seat: Node3D) -> Node3D:
 	return seat.get_node_or_null(approach_path) as Node3D
 
 func _select_seated_animation() -> StringName:
+	if randomize_seated_animation:
+		var random_animation := _find_random_seated_animation()
+		if not random_animation.is_empty():
+			return random_animation
+
 	if _can_play_animation(seated_animation):
 		return seated_animation
 
@@ -304,6 +312,59 @@ func _select_seated_animation() -> StringName:
 		return unisex_animation
 
 	return seated_animation
+
+func _find_random_seated_animation() -> StringName:
+	if animation_player == null:
+		return StringName()
+
+	var options: Array[StringName] = []
+	for animation_name in animation_player.get_animation_list():
+		var normalized := String(animation_name).to_lower()
+		if normalized.contains("sit"):
+			options.append(animation_name)
+
+	if options.is_empty():
+		return StringName()
+	return options[randi() % options.size()]
+
+func _get_seated_animation_height_compensation(animation_name: StringName) -> float:
+	if animation_player == null:
+		return 0.0
+	var resolved_name := _resolve_animation_name(animation_name)
+	if resolved_name.is_empty():
+		return 0.0
+	var animation := animation_player.get_animation(resolved_name)
+	if animation == null:
+		return 0.0
+
+	var animated_hips_y := INF
+	for i in range(animation.get_track_count()):
+		if animation.track_get_type(i) != Animation.TYPE_POSITION_3D:
+			continue
+		var path := String(animation.track_get_path(i))
+		if not path.contains("Hips"):
+			continue
+		if animation.track_get_key_count(i) <= 0:
+			continue
+		var value: Variant = animation.track_get_key_value(i, 0)
+		if value is Vector3:
+			animated_hips_y = (value as Vector3).y
+			break
+	if animated_hips_y == INF:
+		return 0.0
+
+	var skeleton := _find_skeleton(visual_node)
+	if skeleton == null:
+		return 0.0
+	var hips_index := skeleton.find_bone("Hips")
+	if hips_index < 0:
+		return 0.0
+	var rest_hips_y := skeleton.get_bone_rest(hips_index).origin.y
+	var visual_global_scale_y := visual_node.global_transform.basis.get_scale().y if visual_node != null else 1.0
+	if absf(visual_global_scale_y) <= 0.0001:
+		visual_global_scale_y = 1.0
+	var skeleton_to_visual_scale_y := skeleton.global_transform.basis.get_scale().y / visual_global_scale_y
+	return (rest_hips_y - animated_hips_y) * skeleton_to_visual_scale_y * seated_animation_height_compensation_scale
 
 func _can_play_animation(animation_name: StringName) -> bool:
 	return not _resolve_animation_name(animation_name).is_empty()
@@ -326,6 +387,17 @@ func _find_seated_animation(keywords: PackedStringArray, exclude_female_only: bo
 
 func _uses_female_seated_animations() -> bool:
 	return false
+
+func _find_skeleton(node: Node) -> Skeleton3D:
+	if node == null:
+		return null
+	if node is Skeleton3D:
+		return node as Skeleton3D
+	for child in node.get_children():
+		var found := _find_skeleton(child)
+		if found != null:
+			return found
+	return null
 
 func _update_animation(direction: Vector3) -> void:
 	if not is_on_floor():

@@ -21,6 +21,7 @@ var selected_worker: CharacterBody3D = null
 var worker_count := 0
 
 var status_label: Label
+var role_option_button: OptionButton
 var send_button: Button
 var prep_button: Button
 var transport_burger_button: Button
@@ -61,7 +62,7 @@ func _build_menu() -> void:
 	panel.offset_left = 16.0
 	panel.offset_top = 16.0
 	panel.offset_right = 244.0
-	panel.offset_bottom = 340.0
+	panel.offset_bottom = 390.0
 	canvas.add_child(panel)
 
 	var margin := MarginContainer.new()
@@ -88,6 +89,22 @@ func _build_menu() -> void:
 	spawn_customer_button.text = "Spawn customer"
 	spawn_customer_button.pressed.connect(_spawn_customer)
 	layout.add_child(spawn_customer_button)
+
+	var role_row := HBoxContainer.new()
+	role_row.add_theme_constant_override("separation", 6)
+	layout.add_child(role_row)
+
+	var role_label := Label.new()
+	role_label.text = "Role"
+	role_label.custom_minimum_size = Vector2(44.0, 0.0)
+	role_row.add_child(role_label)
+
+	role_option_button = OptionButton.new()
+	role_option_button.disabled = true
+	role_option_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	role_option_button.item_selected.connect(_on_role_option_selected)
+	role_row.add_child(role_option_button)
+	_populate_role_options(null)
 
 	send_button = Button.new()
 	send_button.text = "Send to register"
@@ -411,13 +428,14 @@ func _fry_selected_worker_fries() -> void:
 			for output in called_outputs:
 				if output is Node3D:
 					fried_outputs.append(output as Node3D)
-	if fried_outputs.size() < 2:
+	if fried_outputs.is_empty():
 		_set_status_message("Fries could not be cooked.")
 		return
 
 	var carry_attachments: Array[Node3D] = []
 	var hand_bones := ["RightHand", "LeftHand"]
-	for index in range(mini(2, fried_outputs.size())):
+	var carry_count := mini(2, fried_outputs.size())
+	for index in range(carry_count):
 		carry_attachments.append(_attach_carried_food_to_hand(
 			worker,
 			fried_outputs[index],
@@ -436,7 +454,7 @@ func _fry_selected_worker_fries() -> void:
 	if worker.has_method("snap_to_station"):
 		worker.snap_to_station(table_stand_point)
 
-	for index in range(mini(2, fried_outputs.size())):
+	for index in range(carry_count):
 		var fries := fried_outputs[index]
 		if fries == null or not is_instance_valid(fries):
 			continue
@@ -465,7 +483,7 @@ func _fry_selected_worker_fries() -> void:
 		if attachment != null and is_instance_valid(attachment):
 			attachment.queue_free()
 	_cleanup_carry_attachments(carry_attachments)
-	_set_status_message("%s moved 2 fries to the food table." % worker.name)
+	_set_status_message("%s moved %d fries to the food table." % [worker.name, carry_count])
 
 func _debug_add_meat_to_prep() -> void:
 	var prep_station := _resolve_prep_station()
@@ -502,6 +520,19 @@ func _select_worker(worker: CharacterBody3D) -> void:
 		selected_worker.set_selected(true)
 
 	_refresh_status()
+
+func _on_role_option_selected(index: int) -> void:
+	if selected_worker == null or role_option_button == null:
+		return
+	var ai := selected_worker.get_node_or_null("WorkerAI")
+	if ai == null:
+		return
+	var role_id := role_option_button.get_item_id(index)
+	if ai.has_method("set_job_role"):
+		ai.call("set_job_role", role_id)
+	else:
+		ai.job_role = role_id
+	_set_status_message("%s role: %s." % [selected_worker.name, _get_worker_role_label(selected_worker)])
 
 func _move_worker_to(worker: CharacterBody3D, target_position: Vector3, look_target: Variant = null, release_station_snap := true) -> void:
 	var navigation_map := get_world_3d().navigation_map
@@ -825,6 +856,9 @@ func _refresh_status() -> void:
 		transport_burger_button.disabled = selected_worker == null
 	if fry_fries_button != null:
 		fry_fries_button.disabled = selected_worker == null
+	if role_option_button != null:
+		role_option_button.disabled = selected_worker == null
+		_populate_role_options(selected_worker)
 	if status_label == null:
 		return
 
@@ -832,8 +866,47 @@ func _refresh_status() -> void:
 	if selected_worker == null:
 		status_label.text = "%d workers. Select a worker, then right-click to move." % count
 	else:
-		status_label.text = "Selected: %s. Right-click to move." % selected_worker.name
+		status_label.text = "Selected: %s (%s). Right-click to move." % [selected_worker.name, _get_worker_role_label(selected_worker)]
 
 func _set_status_message(message: String) -> void:
 	if status_label != null:
 		status_label.text = message
+
+func _populate_role_options(worker: CharacterBody3D) -> void:
+	if role_option_button == null:
+		return
+	role_option_button.clear()
+	var ai := worker.get_node_or_null("WorkerAI") if worker != null else null
+	var role_options: Array = ai.call("get_job_role_options") if ai != null and ai.has_method("get_job_role_options") else _get_fallback_role_options()
+	var selected_index := 0
+	var selected_role := int(ai.job_role) if ai != null else 0
+	for index in range(role_options.size()):
+		var role: Dictionary = role_options[index]
+		var role_id := int(role.get("id", index))
+		role_option_button.add_item(String(role.get("label", str(role_id))), role_id)
+		if role_id == selected_role:
+			selected_index = index
+	role_option_button.selected = selected_index
+
+func _get_worker_role_label(worker: CharacterBody3D) -> String:
+	if worker == null:
+		return "Auto"
+	var ai := worker.get_node_or_null("WorkerAI")
+	if ai == null:
+		return "Auto"
+	if ai.has_method("get_job_role_label"):
+		return String(ai.call("get_job_role_label"))
+	for role in _get_fallback_role_options():
+		if int(role.get("id", -1)) == int(ai.job_role):
+			return String(role.get("label", "Auto"))
+	return "Auto"
+
+func _get_fallback_role_options() -> Array[Dictionary]:
+	return [
+		{"id": 0, "label": "Auto"},
+		{"id": 1, "label": "Cashier"},
+		{"id": 2, "label": "Meat Griller"},
+		{"id": 3, "label": "Burger Prepper"},
+		{"id": 4, "label": "Fries Fryer"},
+		{"id": 5, "label": "Caterer"}
+	]

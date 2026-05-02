@@ -580,7 +580,10 @@ func _sort_nodes_clockwise(a: Node3D, b: Node3D, center: Vector3) -> bool:
 
 func _clear_generated_children() -> void:
 	for child in get_children():
-		child.queue_free()
+		if Engine.is_editor_hint():
+			child.free()
+		else:
+			child.queue_free()
 
 func _set_labels_visible(labels_visible: bool) -> void:
 	for child in get_children():

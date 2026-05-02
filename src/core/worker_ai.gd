@@ -1,14 +1,15 @@
 extends Node
 
 enum JobRole {
-	ANY,
+	AUTO,
 	CASHIER,
-	COOK,
-	PREP,
-	DELIVER
+	MEAT_GRILLER,
+	BURGER_PREPPER,
+	FRIES_FRYER,
+	CATERER
 }
 
-var job_role: int = JobRole.ANY
+var job_role: int = JobRole.AUTO
 var current_action_label: String = "Idle"
 var current_task_type_label: String = "-"
 var target_customer_label: String = "-"
@@ -18,6 +19,7 @@ var destination_text: String = "-"
 var _worker: CharacterBody3D
 var _current_task: Object = null
 var _is_executing := false
+var _last_idle_station: Node = null
 
 func _ready() -> void:
 	_worker = get_parent() as CharacterBody3D
@@ -37,8 +39,10 @@ func _start_task_loop() -> void:
 				_current_task = null
 				_is_executing = false
 				_set_idle_status()
+				_move_to_assigned_idle_station()
 			else:
 				_set_idle_status()
+				_move_to_assigned_idle_station()
 				await get_tree().create_timer(0.5).timeout
 		else:
 			await get_tree().process_frame
@@ -510,19 +514,92 @@ func get_activity_status() -> Dictionary:
 		"destination": destination_text
 	}
 
+func get_job_role_options() -> Array[Dictionary]:
+	return [
+		{"id": JobRole.AUTO, "label": "Auto"},
+		{"id": JobRole.CASHIER, "label": "Cashier"},
+		{"id": JobRole.MEAT_GRILLER, "label": "Meat Griller"},
+		{"id": JobRole.BURGER_PREPPER, "label": "Burger Prepper"},
+		{"id": JobRole.FRIES_FRYER, "label": "Fries Fryer"},
+		{"id": JobRole.CATERER, "label": "Caterer"}
+	]
+
+func get_job_role_label() -> String:
+	return _get_job_role_label(job_role)
+
+func set_job_role(role: int) -> void:
+	job_role = role
+	_last_idle_station = null
+	if is_inside_tree() and not _is_executing:
+		_move_to_assigned_idle_station()
+
 func _get_job_role_label(role: int) -> String:
 	match role:
-		JobRole.ANY:
-			return "ANY"
+		JobRole.AUTO:
+			return "Auto"
 		JobRole.CASHIER:
-			return "CASHIER"
-		JobRole.COOK:
-			return "COOK"
-		JobRole.PREP:
-			return "PREP"
-		JobRole.DELIVER:
-			return "DELIVER"
-	return "UNKNOWN"
+			return "Cashier"
+		JobRole.MEAT_GRILLER:
+			return "Meat Griller"
+		JobRole.BURGER_PREPPER:
+			return "Burger Prepper"
+		JobRole.FRIES_FRYER:
+			return "Fries Fryer"
+		JobRole.CATERER:
+			return "Caterer"
+	return "Unknown"
+
+func _move_to_assigned_idle_station() -> void:
+	if _worker == null or not is_instance_valid(_worker) or _is_executing:
+		return
+	var tm := get_node_or_null("/root/TaskManager")
+	if tm == null or not tm.has_method("get_assigned_station_for_worker"):
+		return
+	var station := tm.call("get_assigned_station_for_worker", _worker, job_role) as Node
+	if station == null or not is_instance_valid(station):
+		_last_idle_station = null
+		if job_role != JobRole.AUTO and job_role != JobRole.CATERER:
+			reason_text = "No workstation available"
+		return
+
+	var idle_point := _get_station_idle_point(station)
+	if idle_point == null:
+		return
+	if _last_idle_station == station and _worker.global_position.distance_to(idle_point.global_position) <= 0.45:
+		reason_text = "At %s station" % _get_job_role_label(job_role)
+		return
+
+	_last_idle_station = station
+	reason_text = "Going to %s station" % _get_job_role_label(job_role)
+	_move_worker_to(idle_point.global_position, _get_station_idle_look_target(station, idle_point))
+
+func _get_station_idle_point(station: Node) -> Node3D:
+	if station == null or not is_instance_valid(station):
+		return null
+	if station.has_method("get_stand_point"):
+		var stand := station.call("get_stand_point") as Node3D
+		if stand != null:
+			return stand
+	if station.has_method("get_snap_point"):
+		var snap := station.call("get_snap_point") as Node3D
+		if snap != null:
+			return snap
+	if station.has_method("get_entrance_point"):
+		var entrance := station.call("get_entrance_point") as Node3D
+		if entrance != null:
+			return entrance
+	return station as Node3D
+
+func _get_station_idle_look_target(station: Node, idle_point: Node3D) -> Variant:
+	if station != null and station.has_method("get_look_target"):
+		return station.call("get_look_target")
+	if station is Node3D:
+		return (station as Node3D).global_position
+	if idle_point != null:
+		var parent_3d := idle_point.get_parent() as Node3D
+		if parent_3d != null:
+			return parent_3d.global_position
+	return null
 
 func _format_vector(value: Vector3) -> String:
 	return "(%.1f, %.1f, %.1f)" % [value.x, value.y, value.z]

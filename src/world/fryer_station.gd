@@ -8,6 +8,7 @@ extends Node
 @export var oil_color := Color(1.0, 0.78, 0.08, 0.42)
 @export var raw_fries_scale := Vector3(0.35, 0.35, 0.35)
 @export var bagged_fries_scale := Vector3(0.45, 0.45, 0.45)
+@export var bagged_fries_output_count := 1
 
 var _is_busy := false
 var _reserved_worker: Node
@@ -174,7 +175,7 @@ func _clear_raw_fries() -> void:
 
 func _create_bagged_fries_outputs() -> Array[Node3D]:
 	var outputs: Array[Node3D] = []
-	var output_count := mini(2, _fries_positions.size())
+	var output_count := mini(bagged_fries_output_count, _fries_positions.size())
 	for index in range(output_count):
 		if bagged_fries_scene == null:
 			continue

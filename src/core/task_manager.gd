@@ -21,6 +21,13 @@ class Task:
 var pending_tasks: Array[Task] = []
 var active_tasks: Array[Task] = []
 
+const ROLE_AUTO := 0
+const ROLE_CASHIER := 1
+const ROLE_MEAT_GRILLER := 2
+const ROLE_BURGER_PREPPER := 3
+const ROLE_FRIES_FRYER := 4
+const ROLE_CATERER := 5
+
 func add_task(type: int, args: Dictionary = {}) -> Task:
 	var task = Task.new(type, args)
 	if not _prepare_task_for_queue(task):
@@ -34,12 +41,16 @@ func get_next_task(worker: Node) -> Task:
 		return null
 	
 	var ai = worker.get_node("WorkerAI") if worker.has_node("WorkerAI") else null
-	var role = ai.job_role if ai else 0 # 0 is ANY
+	var role = ai.job_role if ai else ROLE_AUTO
 	
 	var i := 0
 	while i < pending_tasks.size():
 		var task = pending_tasks[i]
 		if _can_worker_do_task(role, task.type):
+			if not _task_matches_worker_station(worker, role, task):
+				i += 1
+				continue
+			_assign_task_station_for_worker(worker, role, task)
 			if _station_has_active_task(task):
 				i += 1
 				continue
@@ -87,17 +98,195 @@ func get_next_task(worker: Node) -> Task:
 	return null
 
 func _can_worker_do_task(role: int, task_type: int) -> bool:
-	if role == 0: return true
+	if role == ROLE_AUTO: return true
 	match role:
-		1: # CASHIER
+		ROLE_CASHIER:
 			return task_type == TaskType.PROCESS_ORDER
-		2: # COOK (Fryer, Grill)
-			return task_type == TaskType.COOK_MEAT or task_type == TaskType.FRY_FRIES
-		3: # PREP (Burger)
+		ROLE_MEAT_GRILLER:
+			return task_type == TaskType.COOK_MEAT
+		ROLE_BURGER_PREPPER:
 			return task_type == TaskType.ASSEMBLE_BURGER
-		4: # DELIVER
+		ROLE_FRIES_FRYER:
+			return task_type == TaskType.FRY_FRIES
+		ROLE_CATERER:
 			return task_type == TaskType.DELIVER_FOOD
 	return true
+
+func get_assigned_station_for_worker(worker: Node, role: int = -1) -> Node:
+	if worker == null or not is_instance_valid(worker):
+		return null
+	var worker_role := role
+	if worker_role < 0:
+		var ai := worker.get_node_or_null("WorkerAI")
+		worker_role = int(ai.job_role) if ai != null else ROLE_AUTO
+	if worker_role == ROLE_AUTO or worker_role == ROLE_CATERER:
+		return null
+
+	var stations := _get_stations_for_role(worker_role)
+	if stations.is_empty():
+		return null
+
+	var workers := _get_workers_for_role(worker_role)
+	var worker_index := workers.find(worker)
+	if worker_index < 0 or worker_index >= stations.size():
+		return null
+	return stations[worker_index]
+
+func _task_matches_worker_station(worker: Node, role: int, task: Task) -> bool:
+	var task_role := _get_role_for_task_type(task.type)
+	if task_role == ROLE_AUTO or task_role == ROLE_CATERER:
+		return true
+
+	var task_station := _get_task_station(task)
+	var assigned_station := get_assigned_station_for_worker(worker, role)
+
+	if role == ROLE_AUTO:
+		if task.type == TaskType.FRY_FRIES and _station_is_owned_by_role(task_station, task_role):
+			return _get_first_unowned_available_station(ROLE_FRIES_FRYER) != null
+		return not _station_is_owned_by_role(task_station, task_role)
+
+	if assigned_station == null:
+		return false
+	if task.type == TaskType.FRY_FRIES:
+		return true
+	if task_station == null:
+		return true
+	return _stations_match(assigned_station, task_station)
+
+func _assign_task_station_for_worker(worker: Node, role: int, task: Task) -> void:
+	if task.type != TaskType.FRY_FRIES:
+		return
+	var assigned_station := get_assigned_station_for_worker(worker, role)
+	if assigned_station != null:
+		task.args["station"] = assigned_station
+		return
+	if role == ROLE_AUTO:
+		var current_station := task.args.get("station") as Node
+		if (
+			current_station != null
+			and is_instance_valid(current_station)
+			and not _station_is_owned_by_role(current_station, ROLE_FRIES_FRYER)
+			and (not current_station.has_method("is_available") or bool(current_station.call("is_available")))
+		):
+			return
+		var open_station := _get_first_unowned_available_station(ROLE_FRIES_FRYER)
+		if open_station != null:
+			task.args["station"] = open_station
+
+func _get_role_for_task_type(task_type: int) -> int:
+	match task_type:
+		TaskType.PROCESS_ORDER:
+			return ROLE_CASHIER
+		TaskType.COOK_MEAT:
+			return ROLE_MEAT_GRILLER
+		TaskType.ASSEMBLE_BURGER:
+			return ROLE_BURGER_PREPPER
+		TaskType.FRY_FRIES:
+			return ROLE_FRIES_FRYER
+		TaskType.DELIVER_FOOD:
+			return ROLE_CATERER
+	return ROLE_AUTO
+
+func _get_task_station(task: Task) -> Node:
+	if task.type == TaskType.PROCESS_ORDER:
+		return task.args.get("register_marker") as Node
+	return task.args.get("station") as Node
+
+func _station_is_owned_by_role(station: Node, role: int) -> bool:
+	if station == null or not is_instance_valid(station):
+		return false
+	for worker in _get_workers_for_role(role):
+		var assigned_station := get_assigned_station_for_worker(worker, role)
+		if assigned_station != null and _stations_match(assigned_station, station):
+			return true
+	return false
+
+func _get_first_unowned_available_station(role: int) -> Node:
+	for station in _get_stations_for_role(role):
+		if _station_is_owned_by_role(station, role):
+			continue
+		if station.has_method("is_available") and not bool(station.call("is_available")):
+			continue
+		return station
+	return null
+
+func _stations_match(a: Node, b: Node) -> bool:
+	if a == null or b == null or not is_instance_valid(a) or not is_instance_valid(b):
+		return false
+	if a == b:
+		return true
+	var a_register := _get_register_root(a)
+	var b_register := _get_register_root(b)
+	if a_register != null or b_register != null:
+		return a_register != null and a_register == b_register
+	return a == b
+
+func _get_register_root(node: Node) -> Node:
+	if node == null or not is_instance_valid(node):
+		return null
+	var current := node
+	while current != null:
+		var node_name := String(current.name)
+		if node_name.begins_with("CashRegister_") and not node_name.contains("_Approach") and not node_name.contains("_Opposite"):
+			return current
+		current = current.get_parent()
+	return null
+
+func _get_workers_for_role(role: int) -> Array[Node]:
+	var workers: Array[Node] = []
+	for worker in get_tree().get_nodes_in_group("worker_npc"):
+		if worker == null or not is_instance_valid(worker):
+			continue
+		var ai := worker.get_node_or_null("WorkerAI")
+		if ai != null and int(ai.job_role) == role:
+			workers.append(worker)
+	workers.sort_custom(_sort_nodes_by_name)
+	return workers
+
+func _get_stations_for_role(role: int) -> Array[Node]:
+	var stations: Array[Node] = []
+	var level := get_tree().current_scene
+	if level == null:
+		return stations
+	match role:
+		ROLE_CASHIER:
+			var seating_map := level.find_child("SeatingMap", true, false)
+			if seating_map != null:
+				var register_markers: Array[Node3D] = []
+				_collect_register_markers(seating_map, "Approach", register_markers)
+				register_markers.sort_custom(_sort_nodes_by_name)
+				for marker in register_markers:
+					stations.append(marker)
+		ROLE_MEAT_GRILLER:
+			_collect_nodes_with_method(level, "cook_meat", stations)
+			stations.sort_custom(_sort_nodes_by_path)
+		ROLE_BURGER_PREPPER:
+			_collect_nodes_with_method(level, "assemble_default_burger", stations)
+			stations.sort_custom(_sort_nodes_by_path)
+		ROLE_FRIES_FRYER:
+			_collect_nodes_with_method(level, "fry_fries", stations)
+			stations.sort_custom(_sort_nodes_by_name)
+	return stations
+
+func _collect_register_markers(node: Node, marker_suffix: String, markers: Array[Node3D]) -> void:
+	if node is Node3D:
+		var node_name := String(node.name)
+		if node_name.begins_with("CashRegister_") and node_name.ends_with("_" + marker_suffix):
+			markers.append(node as Node3D)
+	for child in node.get_children():
+		_collect_register_markers(child, marker_suffix, markers)
+
+func _collect_nodes_with_method(node: Node, method_name: String, results: Array[Node]) -> void:
+	if node.has_method(method_name):
+		results.append(node)
+	for child in node.get_children():
+		_collect_nodes_with_method(child, method_name, results)
+
+func _sort_nodes_by_name(a: Node, b: Node) -> bool:
+	return String(a.name).naturalnocasecmp_to(String(b.name)) < 0
+
+func _sort_nodes_by_path(a: Node, b: Node) -> bool:
+	return String(a.get_path()).naturalnocasecmp_to(String(b.get_path())) < 0
 
 func _task_station_is_unavailable(task: Task) -> bool:
 	var station = task.args.get("station")

@@ -54,14 +54,33 @@ func _refresh_workers() -> void:
 		hbox.add_child(label)
 		
 		var ob = OptionButton.new()
-		ob.add_item("ANY", 0)
-		ob.add_item("CASHIER", 1)
-		ob.add_item("COOK", 2)
-		ob.add_item("PREP", 3)
-		ob.add_item("DELIVER", 4)
-		ob.selected = ai.job_role
+		var selected_index := 0
+		var role_options: Array = ai.call("get_job_role_options") if ai.has_method("get_job_role_options") else _get_fallback_role_options()
+		for index in range(role_options.size()):
+			var role: Dictionary = role_options[index]
+			var role_id := int(role.get("id", index))
+			ob.add_item(String(role.get("label", str(role_id))), role_id)
+			if role_id == int(ai.job_role):
+				selected_index = index
+		ob.selected = selected_index
 		
-		ob.item_selected.connect(func(idx): ai.job_role = idx)
+		ob.item_selected.connect(func(idx):
+			var role_id := ob.get_item_id(idx)
+			if ai.has_method("set_job_role"):
+				ai.call("set_job_role", role_id)
+			else:
+				ai.job_role = role_id
+		)
 		
 		hbox.add_child(ob)
 		workers_container.add_child(hbox)
+
+func _get_fallback_role_options() -> Array[Dictionary]:
+	return [
+		{"id": 0, "label": "Auto"},
+		{"id": 1, "label": "Cashier"},
+		{"id": 2, "label": "Meat Griller"},
+		{"id": 3, "label": "Burger Prepper"},
+		{"id": 4, "label": "Fries Fryer"},
+		{"id": 5, "label": "Caterer"}
+	]

@@ -142,7 +142,7 @@ func _animation_library_prefix() -> String:
 	return "HumanM@"
 
 func _should_copy_animation_library(library_name: String, gender_prefix: String) -> bool:
-	return library_name.begins_with(gender_prefix) or library_name == "custom"
+	return library_name.begins_with(gender_prefix) or library_name == "custom" or library_name.to_lower().contains("sit")
 
 func _uses_female_seated_animations() -> bool:
 	return _uses_female_animations()
