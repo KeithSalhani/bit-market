@@ -8,22 +8,105 @@ extends Node3D
 	set(value):
 		show_debug_labels = value
 		_set_labels_visible(value)
-@export var table_label_height := 1.9
-@export var seat_label_height := 1.15
-@export var seat_marker_height := 0.55
-@export var armchair_seat_offset := 0.45
-@export var approach_offset := 1.8
-@export var register_approach_reference_position := Vector3(0.422, 0.0, 8.304)
-@export var register_label_height := 0.8
-@export var approach_marker_height := 0.08
-@export var approach_dot_radius := 0.12
-@export var label_pixel_size := 0.006
+@export var table_label_height := 1.9:
+	set(value):
+		table_label_height = value
+		_queue_editor_rebuild()
+@export var seat_label_height := 1.15:
+	set(value):
+		seat_label_height = value
+		_queue_editor_rebuild()
+@export var seat_marker_height := 0.55:
+	set(value):
+		seat_marker_height = value
+		_queue_editor_rebuild()
+@export var table_seat_height_offset := -0.12:
+	set(value):
+		table_seat_height_offset = value
+		_queue_editor_rebuild()
+@export var regular_chair_table_seat_height_offset := 0.0:
+	set(value):
+		regular_chair_table_seat_height_offset = value
+		_queue_editor_rebuild()
+@export_range(1, 99, 1) var regular_chair_table_start := 5:
+	set(value):
+		regular_chair_table_start = value
+		_queue_editor_rebuild()
+@export_range(1, 99, 1) var regular_chair_table_end := 10:
+	set(value):
+		regular_chair_table_end = value
+		_queue_editor_rebuild()
+@export var table_seat_height_offsets: Dictionary = {}:
+	set(value):
+		table_seat_height_offsets = value
+		_queue_editor_rebuild()
+@export var chair_seat_toward_table_offset := 0.35:
+	set(value):
+		chair_seat_toward_table_offset = value
+		_queue_editor_rebuild()
+@export var armchair_seat_offset := 0.45:
+	set(value):
+		armchair_seat_offset = value
+		_queue_editor_rebuild()
+@export var armchair_seat_toward_table_offset := 0.18:
+	set(value):
+		armchair_seat_toward_table_offset = value
+		_queue_editor_rebuild()
+@export var approach_offset := 1.8:
+	set(value):
+		approach_offset = value
+		_queue_editor_rebuild()
+@export var register_approach_reference_position := Vector3(0.422, 0.0, 8.304):
+	set(value):
+		register_approach_reference_position = value
+		_queue_editor_rebuild()
+@export var register_label_height := 0.8:
+	set(value):
+		register_label_height = value
+		_queue_editor_rebuild()
+@export var approach_marker_height := 0.08:
+	set(value):
+		approach_marker_height = value
+		_queue_editor_rebuild()
+@export var approach_dot_radius := 0.12:
+	set(value):
+		approach_dot_radius = value
+		_queue_editor_rebuild()
+@export var label_pixel_size := 0.006:
+	set(value):
+		label_pixel_size = value
+		_queue_editor_rebuild()
+@export var show_seated_previews := true:
+	set(value):
+		show_seated_previews = value
+		_queue_editor_rebuild()
+@export var seated_preview_scene: PackedScene = preload("res://scenes/characters/character_npc.tscn"):
+	set(value):
+		seated_preview_scene = value
+		_queue_editor_rebuild()
+@export var seated_preview_table_ids: PackedInt32Array = []:
+	set(value):
+		seated_preview_table_ids = value
+		_queue_editor_rebuild()
+@export_range(0.0, 1.0, 0.01) var seated_preview_animation_time := 0.35:
+	set(value):
+		seated_preview_animation_time = value
+		_queue_editor_rebuild()
+@export var seated_actor_height_offset := -0.9:
+	set(value):
+		seated_actor_height_offset = value
+		_queue_editor_rebuild()
+@export var seated_visual_height_offset := -1.0:
+	set(value):
+		seated_visual_height_offset = value
+		_queue_editor_rebuild()
 @export var print_summary := true
 
 var tables: Array[Node3D] = []
 var chairs: Array[Node3D] = []
 var armchairs: Array[Node3D] = []
 var cash_registers: Array[Node3D] = []
+var _editor_rebuild_queued := false
 
 func _ready() -> void:
 	if Engine.is_editor_hint() and not rebuild_in_editor:
@@ -34,6 +117,7 @@ func _ready() -> void:
 func rebuild() -> void:
 	if not is_inside_tree():
 		return
+	_editor_rebuild_queued = false
 
 	_clear_generated_children()
 
@@ -77,17 +161,35 @@ func rebuild() -> void:
 		_build_cash_register(index + 1, cash_registers[index])
 
 	if print_summary:
-		print("SeatingMap: ", tables.size(), " tables, ", chairs.size(), " chairs, ", armchairs.size(), " armchairs, ", cash_registers.size(), " cash registers")
+		print(
+			"SeatingMap: ",
+			tables.size(),
+			" tables, ",
+			chairs.size(),
+			" chairs, ",
+			armchairs.size(),
+			" armchairs, ",
+			cash_registers.size(),
+			" cash registers"
+		)
+
+func _queue_editor_rebuild() -> void:
+	if not Engine.is_editor_hint() or not rebuild_in_editor or not is_inside_tree():
+		return
+	if _editor_rebuild_queued:
+		return
+	_editor_rebuild_queued = true
+	call_deferred("rebuild")
 
 func _collect_furniture(node: Node) -> void:
 	if node is Node3D:
 		var node_3d := node as Node3D
 		var node_name := String(node.name)
-		if _is_indexed_furniture_name(node_name, "Table"):
+		if _is_numbered_furniture_name(node_name, "Table"):
 			tables.append(node_3d)
-		elif _is_indexed_furniture_name(node_name, "Chair"):
+		elif _is_furniture_instance_name(node_name, "Chair"):
 			chairs.append(node_3d)
-		elif _is_indexed_furniture_name(node_name, "Armchair"):
+		elif _is_furniture_instance_name(node_name, "Armchair"):
 			armchairs.append(node_3d)
 		elif _is_cash_register_name(node_name):
 			cash_registers.append(node_3d)
@@ -95,9 +197,12 @@ func _collect_furniture(node: Node) -> void:
 	for child in node.get_children():
 		_collect_furniture(child)
 
-func _is_indexed_furniture_name(node_name: String, base_name: String) -> bool:
+func _is_furniture_instance_name(node_name: String, base_name: String) -> bool:
 	if node_name == base_name:
 		return true
+	return _is_numbered_furniture_name(node_name, base_name)
+
+func _is_numbered_furniture_name(node_name: String, base_name: String) -> bool:
 	if not node_name.begins_with(base_name + "_"):
 		return false
 
@@ -128,20 +233,52 @@ func _build_table_group(table_number: int, table_group: Dictionary) -> void:
 	var source_armchairs := table_group["armchairs"] as Array
 	source_armchairs.sort_custom(_sort_nodes_clockwise.bind(source_table.global_position))
 	var approach_markers := _build_approach_markers(table_root, table_number, source_table)
+	var resolved_table_seat_height_offset := _get_table_seat_height_offset(table_number, source_table)
 
 	var seat_number := 1
 	for source_chair in source_chairs:
 		var chair_node := source_chair as Node3D
-		_add_seat(table_root, table_number, seat_number, chair_node, chair_node.global_position, chair_node.global_transform.basis, approach_markers)
+		_add_seat(
+			table_root,
+			table_number,
+			seat_number,
+			chair_node,
+			_get_chair_seat_position(chair_node, source_table.global_position),
+			chair_node.global_transform.basis,
+			source_table.global_position,
+			approach_markers,
+			resolved_table_seat_height_offset
+		)
 		seat_number += 1
 
 	for source_armchair in source_armchairs:
 		var armchair_node := source_armchair as Node3D
 		var armchair_basis := armchair_node.global_transform.basis
 		var side_axis := armchair_basis.x.normalized()
-		_add_seat(table_root, table_number, seat_number, armchair_node, armchair_node.global_position - side_axis * armchair_seat_offset, armchair_basis, approach_markers)
+		var armchair_center := _get_armchair_seat_center(armchair_node, source_table.global_position)
+		_add_seat(
+			table_root,
+			table_number,
+			seat_number,
+			armchair_node,
+			armchair_center - side_axis * armchair_seat_offset,
+			armchair_basis,
+			source_table.global_position,
+			approach_markers,
+			resolved_table_seat_height_offset
+		)
 		seat_number += 1
-		_add_seat(table_root, table_number, seat_number, armchair_node, armchair_node.global_position + side_axis * armchair_seat_offset, armchair_basis, approach_markers)
+		_add_seat(
+			table_root,
+			table_number,
+			seat_number,
+			armchair_node,
+			armchair_center + side_axis * armchair_seat_offset,
+			armchair_basis,
+			source_table.global_position,
+			approach_markers,
+			resolved_table_seat_height_offset
+		)
 		seat_number += 1
 
 	table_root.set_meta("seat_count", seat_number - 1)
@@ -176,6 +313,20 @@ func _build_cash_register(register_number: int, source_register: Node3D) -> void
 	approach_marker.set_meta("register_id", register_number)
 
 	_add_editor_red_dot(approach_marker)
+	_add_cash_register_opposite_dot(register_root, register_number, source_register.global_position, approach_marker.global_position)
+
+func _add_cash_register_opposite_dot(register_root: Node3D, register_number: int, register_position: Vector3, red_dot_position: Vector3) -> void:
+	var opposite_marker := Marker3D.new()
+	opposite_marker.name = "CashRegister_%02d_Opposite" % register_number
+	register_root.add_child(opposite_marker)
+	opposite_marker.global_position = Vector3(
+		register_position.x + (register_position.x - red_dot_position.x),
+		red_dot_position.y,
+		register_position.z + (register_position.z - red_dot_position.z)
+	)
+	opposite_marker.set_meta("register_id", register_number)
+
+	_add_editor_green_dot(opposite_marker)
 
 func _build_approach_markers(parent: Node3D, table_number: int, source_table: Node3D) -> Array[Marker3D]:
 	var markers: Array[Marker3D] = []
@@ -210,34 +361,166 @@ func _add_approach_marker(parent: Node3D, table_number: int, suffix: String, mar
 	return marker
 
 func _add_editor_red_dot(parent: Node3D) -> void:
+	_add_editor_dot(parent, "RedDot", Color(1.0, 0.05, 0.03, 1.0))
+
+func _add_editor_green_dot(parent: Node3D) -> void:
+	_add_editor_dot(parent, "GreenDot", Color(0.05, 1.0, 0.1, 1.0))
+
+func _add_editor_dot(parent: Node3D, dot_name: String, dot_color: Color) -> void:
 	var dot := MeshInstance3D.new()
-	dot.name = "RedDot"
+	dot.name = dot_name
 	var sphere := SphereMesh.new()
 	sphere.radius = approach_dot_radius
 	sphere.height = approach_dot_radius * 2.0
 	dot.mesh = sphere
 	dot.visible = Engine.is_editor_hint()
 	var material := StandardMaterial3D.new()
-	material.albedo_color = Color(1.0, 0.05, 0.03, 1.0)
+	material.albedo_color = dot_color
 	material.emission_enabled = true
-	material.emission = Color(1.0, 0.05, 0.03, 1.0)
+	material.emission = dot_color
 	dot.material_override = material
 	parent.add_child(dot)
 
-func _add_seat(parent: Node3D, table_number: int, seat_number: int, source_seat: Node3D, seat_position: Vector3, seat_basis: Basis, approach_markers: Array[Marker3D]) -> void:
+func _add_seat(parent: Node3D, table_number: int, seat_number: int, source_seat: Node3D, seat_position: Vector3, seat_basis: Basis, table_position: Vector3, approach_markers: Array[Marker3D], table_height_offset: float) -> void:
 	var seat_marker := Marker3D.new()
 	seat_marker.name = "Table_%02d_Seat_%02d" % [table_number, seat_number]
 	parent.add_child(seat_marker)
-	seat_marker.global_transform = Transform3D(seat_basis, seat_position)
+	var final_position := _seat_marker_position(seat_position, table_height_offset)
+	seat_marker.global_transform = Transform3D(_seat_basis_aligned_to_chair(final_position, table_position, seat_basis), final_position)
 	seat_marker.set_meta("source_seat", source_seat.get_path())
 	seat_marker.set_meta("table_id", table_number)
 	seat_marker.set_meta("seat_id", seat_number)
+	seat_marker.set_meta("height_offset", table_height_offset)
+	seat_marker.set_meta("sit_position_height_offset", seated_actor_height_offset)
+	seat_marker.set_meta("seated_visual_height_offset", seated_visual_height_offset)
 	seat_marker.set_meta("occupied", false)
-	var approach_marker := _find_nearest_approach_marker(approach_markers, seat_position)
+	var approach_marker := _find_nearest_approach_marker(approach_markers, final_position)
 	if approach_marker != null:
 		seat_marker.set_meta("approach_path", seat_marker.get_path_to(approach_marker))
 
-	_add_label(seat_marker, "Label", "T%02d-S%02d" % [table_number, seat_number], seat_position + Vector3.UP * seat_label_height)
+	_add_label(seat_marker, "Label", "T%02d-S%02d" % [table_number, seat_number], final_position + Vector3.UP * seat_label_height)
+	_add_seated_preview(seat_marker, table_number)
+
+func _seat_marker_position(source_position: Vector3, table_height_offset: float) -> Vector3:
+	return source_position + Vector3.UP * (seat_marker_height + table_height_offset)
+
+func _add_seated_preview(seat_marker: Marker3D, table_number: int) -> void:
+	if not Engine.is_editor_hint() or not show_seated_previews or seated_preview_scene == null:
+		return
+	if not seated_preview_table_ids.is_empty() and not seated_preview_table_ids.has(table_number):
+		return
+
+	var preview := seated_preview_scene.instantiate() as Node3D
+	if preview == null:
+		return
+
+	preview.name = "%s_Preview" % seat_marker.name
+	seat_marker.add_child(preview)
+	var seat_rotation_y := seat_marker.global_transform.basis.get_euler().y
+	var preview_position := seat_marker.global_position + Vector3.UP * seated_actor_height_offset
+	preview.global_transform = Transform3D(Basis.from_euler(Vector3(0.0, seat_rotation_y, 0.0)), preview_position)
+	preview.set_meta("seating_preview", true)
+
+	_disable_preview_collisions(preview)
+	_apply_preview_visual_offset(preview)
+	_pose_seated_preview(preview)
+
+func _disable_preview_collisions(node: Node) -> void:
+	if node is CollisionObject3D:
+		var collision_object := node as CollisionObject3D
+		collision_object.collision_layer = 0
+		collision_object.collision_mask = 0
+	elif node is CollisionShape3D:
+		(node as CollisionShape3D).disabled = true
+
+	for child in node.get_children():
+		_disable_preview_collisions(child)
+
+func _apply_preview_visual_offset(preview: Node3D) -> void:
+	var visual_node := preview.get_node_or_null(^"VisualRoot") as Node3D
+	if visual_node == null and preview.has_method("_refresh_visual_references"):
+		preview.call("_refresh_visual_references")
+		visual_node = preview.get_node_or_null(^"VisualRoot") as Node3D
+
+	if visual_node != null:
+		visual_node.position += Vector3.UP * seated_visual_height_offset
+
+func _pose_seated_preview(preview: Node3D) -> void:
+	if preview.has_method("_refresh_visual_references"):
+		preview.call("_refresh_visual_references")
+
+	var animation_player := _find_animation_player(preview)
+	if animation_player == null:
+		return
+
+	var seated_animation := _find_seated_preview_animation(animation_player)
+	if seated_animation.is_empty():
+		return
+
+	animation_player.play(seated_animation)
+	animation_player.seek(seated_preview_animation_time, true)
+	animation_player.pause()
+
+func _find_animation_player(node: Node) -> AnimationPlayer:
+	if node is AnimationPlayer:
+		return node as AnimationPlayer
+
+	for child in node.get_children():
+		var animation_player := _find_animation_player(child)
+		if animation_player != null:
+			return animation_player
+
+	return null
+
+func _find_seated_preview_animation(animation_player: AnimationPlayer) -> StringName:
+	if animation_player.has_animation(&"custom/sit_down"):
+		return &"custom/sit_down"
+
+	for animation_name in animation_player.get_animation_list():
+		var animation_text := String(animation_name).to_lower()
+		if animation_text.contains("sit"):
+			return animation_name
+
+	return StringName()
+
+func _get_table_seat_height_offset(table_number: int, source_table: Node3D) -> float:
+	var table_name := String(source_table.name)
+	if table_seat_height_offsets.has(table_name):
+		return float(table_seat_height_offsets[table_name])
+	if _is_regular_chair_table(table_number):
+		return regular_chair_table_seat_height_offset
+	return table_seat_height_offset
+
+func _is_regular_chair_table(table_number: int) -> bool:
+	return table_number >= regular_chair_table_start and table_number <= regular_chair_table_end
+
+func _get_chair_seat_position(chair: Node3D, table_position: Vector3) -> Vector3:
+	var toward_table := table_position - chair.global_position
+	toward_table.y = 0.0
+	if toward_table.length() <= 0.01:
+		return chair.global_position
+	return chair.global_position + toward_table.normalized() * chair_seat_toward_table_offset
+
+func _get_armchair_seat_center(armchair: Node3D, table_position: Vector3) -> Vector3:
+	var toward_table := table_position - armchair.global_position
+	toward_table.y = 0.0
+	if toward_table.length() <= 0.01:
+		return armchair.global_position
+	return armchair.global_position + toward_table.normalized() * armchair_seat_toward_table_offset
+
+func _seat_basis_aligned_to_chair(seat_position: Vector3, table_position: Vector3, seat_basis: Basis) -> Basis:
+	var chair_forward := seat_basis.z
+	chair_forward.y = 0.0
+	if chair_forward.length() < 0.001:
+		chair_forward = Vector3.FORWARD
+	chair_forward = chair_forward.normalized()
+
+	var table_direction := table_position - seat_position
+	table_direction.y = 0.0
+	if table_direction.length() > 0.001 and chair_forward.dot(table_direction.normalized()) < 0.0:
+		chair_forward = -chair_forward
+
+	return Basis.from_euler(Vector3(0.0, atan2(chair_forward.x, chair_forward.z), 0.0))
 
 func _find_nearest_approach_marker(approach_markers: Array[Marker3D], seat_position: Vector3) -> Marker3D:
 	var nearest_marker: Marker3D = null
@@ -297,7 +580,10 @@ func _sort_nodes_clockwise(a: Node3D, b: Node3D, center: Vector3) -> bool:
 
 func _clear_generated_children() -> void:
 	for child in get_children():
-		child.queue_free()
+		if Engine.is_editor_hint():
+			child.free()
+		else:
+			child.queue_free()
 
 func _set_labels_visible(labels_visible: bool) -> void:
 	for child in get_children():

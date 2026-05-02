@@ -3,9 +3,9 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dlwt3e3lnjtr1"
-path.s3tc="res://.godot/imported/BurgerPiz_Road.jpg-03270a875f1474f948f442d52ecf81c8.s3tc.ctex"
+path.etc2="res://.godot/imported/BurgerPiz_Road.jpg-03270a875f1474f948f442d52ecf81c8.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
@@ -15,7 +15,7 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/map/BurgerPiz_Road.jpg"
-dest_files=["res://.godot/imported/BurgerPiz_Road.jpg-03270a875f1474f948f442d52ecf81c8.s3tc.ctex"]
+dest_files=["res://.godot/imported/BurgerPiz_Road.jpg-03270a875f1474f948f442d52ecf81c8.etc2.ctex"]
 
 [params]
 

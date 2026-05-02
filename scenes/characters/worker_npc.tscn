@@ -1,0 +1,49 @@
+[gd_scene format=3 uid="uid://dsik1g0ygg0cp"]
+
+[ext_resource type="Script" uid="uid://buey0m2dcr8lc" path="res://src/movement/worker_npc_movement.gd" id="1_worker"]
+[ext_resource type="PackedScene" uid="uid://nan6wtf5dnxu" path="res://assets/characters/psx/psx_prop_-_restaurant_cook.glb" id="2_cook"]
+[ext_resource type="AnimationLibrary" uid="uid://b1p4pw0a4i31n" path="res://assets/animations/Male/Idles/HumanM@Idle01-Idle02.fbx" id="3_fgg6v"]
+[ext_resource type="AnimationLibrary" uid="uid://ckprgqmisu0hv" path="res://assets/animations/Male/Movement/Walk/HumanM@Walk01_Forward.fbx" id="3_qsqhf"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_worker"]
+radius = 0.28
+height = 1.65
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_select"]
+albedo_color = Color(0.05, 0.85, 1, 1)
+emission_enabled = true
+emission = Color(0.05, 0.85, 1, 1)
+
+[sub_resource type="TorusMesh" id="TorusMesh_select"]
+inner_radius = 0.34
+outer_radius = 0.39
+rings = 24
+ring_segments = 8
+
+[node name="WorkerNPC" type="CharacterBody3D" unique_id=1943693708]
+collision_layer = 2
+script = ExtResource("1_worker")
+
+[node name="VisualRoot" type="Node3D" parent="." unique_id=1412165293]
+transform = Transform3D(0.45, 0, 0, 0, 0.45, 0, 0, 0, 0.45, 0, 0, 0)
+
+[node name="CookVisual" parent="VisualRoot" unique_id=184061625 instance=ExtResource("2_cook")]
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=719813337]
+libraries/HumanM@Idle01-Idle02 = ExtResource("3_fgg6v")
+libraries/HumanM@Walk01_Forward = ExtResource("3_qsqhf")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=980939667]
+transform = Transform3D(0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0, 0.36309266, 0)
+shape = SubResource("CapsuleShape3D_worker")
+
+[node name="NavigationAgent3D" type="NavigationAgent3D" parent="." unique_id=1740639914]
+path_desired_distance = 0.45
+target_desired_distance = 0.28
+avoidance_enabled = true
+
+[node name="SelectionRing" type="MeshInstance3D" parent="." unique_id=515876998]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0.03, 0)
+visible = false
+material_override = SubResource("StandardMaterial3D_select")
+mesh = SubResource("TorusMesh_select")

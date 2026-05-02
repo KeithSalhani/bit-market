@@ -3,9 +3,9 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://d0tn14o1ibe0v"
-path.s3tc="res://.godot/imported/BurgerPiz_Lamppost_Emissor.png-f56adcd266c748f934cf37d41e60d679.s3tc.ctex"
+path.etc2="res://.godot/imported/BurgerPiz_Lamppost_Emissor.png-f56adcd266c748f934cf37d41e60d679.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
@@ -15,7 +15,7 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/map/BurgerPiz_Lamppost_Emissor.png"
-dest_files=["res://.godot/imported/BurgerPiz_Lamppost_Emissor.png-f56adcd266c748f934cf37d41e60d679.s3tc.ctex"]
+dest_files=["res://.godot/imported/BurgerPiz_Lamppost_Emissor.png-f56adcd266c748f934cf37d41e60d679.etc2.ctex"]
 
 [params]
 

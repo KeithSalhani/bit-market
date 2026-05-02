@@ -1,24 +1,37 @@
 [gd_scene format=3 uid="uid://wn8tdajtrfc5"]
 
 [ext_resource type="Script" uid="uid://chittbgejsvos" path="res://src/movement/character_npc_movement.gd" id="1_psx01"]
+[ext_resource type="PackedScene" uid="uid://caghe4k1sblpi" path="res://scenes/characters/character_01.tscn" id="2_rburv"]
+[ext_resource type="Script" path="res://src/movement/customer_eating_controller.gd" id="3_eat01"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_psx01"]
 
 [node name="CharacterNPC" type="CharacterBody3D" unique_id=1446002868]
+collision_layer = 2
 script = ExtResource("1_psx01")
 character_id = "Character_01"
 visual_node_path = NodePath("VisualRoot")
 animation_player_path = NodePath("VisualRoot/CharacterVisual/AnimationPlayer")
-idle_animation = &"HumanF@Idle01"
-move_animation = &"HumanF@Walk01_Forward"
-fall_animation = &"HumanF@Fall01"
+idle_animation = &"HumanM@Idle01"
+move_animation = &"HumanM@Walk01_Forward"
+fall_animation = &"HumanM@Fall01"
+unisex_seated_animation_keywords = PackedStringArray("carla", "man")
+female_seated_animation_keywords = PackedStringArray("woman")
 
 [node name="VisualRoot" type="Node3D" parent="." unique_id=334404599]
 
+[node name="CharacterVisual" type="Node3D" parent="VisualRoot" unique_id=1541493105 instance=ExtResource("2_rburv")]
+transform = Transform3D(0.42, 0, 0, 0, 0.42, 0, 0, 0, 0.42, 0, 0, 0)
+
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=555564775]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.93965745, 0)
+transform = Transform3D(0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0, 0.4471488, 0)
 shape = SubResource("CapsuleShape3D_psx01")
 
 [node name="NavigationAgent3D" type="NavigationAgent3D" parent="." unique_id=1544470232]
-path_desired_distance = 0.35
+path_desired_distance = 0.65
 target_desired_distance = 0.35
+avoidance_enabled = true
+max_speed = 4.5
+
+[node name="CustomerEatingController" type="Node3D" parent="." unique_id=1346002868]
+script = ExtResource("3_eat01")

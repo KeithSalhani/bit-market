@@ -3,9 +3,9 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://csa57625vlar3"
-path.s3tc="res://.godot/imported/BurgerPiz_Grill.png-00953eb98ffee3791624d94dc02adc0e.s3tc.ctex"
+path.etc2="res://.godot/imported/BurgerPiz_Grill.png-00953eb98ffee3791624d94dc02adc0e.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
@@ -15,7 +15,7 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/map/BurgerPiz_Grill.png"
-dest_files=["res://.godot/imported/BurgerPiz_Grill.png-00953eb98ffee3791624d94dc02adc0e.s3tc.ctex"]
+dest_files=["res://.godot/imported/BurgerPiz_Grill.png-00953eb98ffee3791624d94dc02adc0e.etc2.ctex"]
 
 [params]
 

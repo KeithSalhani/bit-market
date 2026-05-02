@@ -1,0 +1,59 @@
+[gd_scene format=3 uid="uid://t3bdcrepi73m"]
+
+[ext_resource type="PackedScene" uid="uid://nan6wtf5dnxu" path="res://assets/characters/psx/psx_prop_-_restaurant_cook.glb" id="1_wbssf"]
+[ext_resource type="AnimationLibrary" uid="uid://dj5wfq15hh3lg" path="res://assets/animations/Male/Idles/HumanM@Idle01.fbx" id="2_0pxta"]
+[ext_resource type="AnimationLibrary" uid="uid://ckprgqmisu0hv" path="res://assets/animations/Male/Movement/Walk/HumanM@Walk01_Forward.fbx" id="3_ihh0x"]
+[ext_resource type="Script" uid="uid://buey0m2dcr8lc" path="res://src/movement/worker_npc_movement.gd" id="4_worker_script"]
+[ext_resource type="Script" uid="uid://bxcs7gbf1rs64" path="res://src/movement/worker_reach_controller.gd" id="5_reach_controller"]
+[ext_resource type="Script" uid="uid://hsokppr4phyb" path="res://src/core/worker_ai.gd" id="6_1y4l8"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_worker"]
+radius = 0.19091797
+height = 1.65
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_select"]
+albedo_color = Color(0.05, 0.85, 1, 1)
+emission_enabled = true
+emission = Color(0.05, 0.85, 1, 1)
+
+[sub_resource type="TorusMesh" id="TorusMesh_select"]
+inner_radius = 0.34
+outer_radius = 0.39
+rings = 24
+ring_segments = 8
+
+[node name="Worker" type="CharacterBody3D" unique_id=1580585763]
+collision_layer = 2
+script = ExtResource("4_worker_script")
+visual_node_path = NodePath("Sketchfab_Scene")
+animation_player_path = NodePath("Sketchfab_Scene/AnimationPlayer2")
+idle_animation = &"HumanM@Idle01/Untitled"
+move_animation = &"HumanM@Walk01_Forward/HumanM_Walk01_Forward"
+
+[node name="Sketchfab_Scene" parent="." unique_id=231545463 instance=ExtResource("1_wbssf")]
+transform = Transform3D(0.7, 0, 0, 0, 0.7, 0, 0, 0, 0.7, 0, 0, 0)
+
+[node name="AnimationPlayer2" type="AnimationPlayer" parent="Sketchfab_Scene" unique_id=724360660]
+libraries/HumanM@Idle01 = ExtResource("2_0pxta")
+libraries/HumanM@Walk01_Forward = ExtResource("3_ihh0x")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=882022801]
+transform = Transform3D(0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0, 0.41910952, 0)
+shape = SubResource("CapsuleShape3D_worker")
+
+[node name="NavigationAgent3D" type="NavigationAgent3D" parent="." unique_id=788654770]
+path_desired_distance = 0.45
+target_desired_distance = 0.28
+avoidance_enabled = true
+
+[node name="SelectionRing" type="MeshInstance3D" parent="." unique_id=1088336076]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
+visible = false
+material_override = SubResource("StandardMaterial3D_select")
+mesh = SubResource("TorusMesh_select")
+
+[node name="WorkerReachController" type="Node3D" parent="." unique_id=1225177041]
+script = ExtResource("5_reach_controller")
+
+[node name="WorkerAI" type="Node" parent="." unique_id=1283593146]
+script = ExtResource("6_1y4l8")

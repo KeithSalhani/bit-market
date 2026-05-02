@@ -3,9 +3,9 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c7vjf345jxor0"
-path.s3tc="res://.godot/imported/BurgerPiz_TilesPlain.jpg-50cd530c763364f3cf0170357fa0f341.s3tc.ctex"
+path.etc2="res://.godot/imported/BurgerPiz_TilesPlain.jpg-50cd530c763364f3cf0170357fa0f341.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
@@ -15,7 +15,7 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/map/BurgerPiz_TilesPlain.jpg"
-dest_files=["res://.godot/imported/BurgerPiz_TilesPlain.jpg-50cd530c763364f3cf0170357fa0f341.s3tc.ctex"]
+dest_files=["res://.godot/imported/BurgerPiz_TilesPlain.jpg-50cd530c763364f3cf0170357fa0f341.etc2.ctex"]
 
 [params]
 
