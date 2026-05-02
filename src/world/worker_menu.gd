@@ -27,6 +27,7 @@ var transport_burger_button: Button
 var fry_fries_button: Button
 var debug_add_meat_button: Button
 var debug_create_burger_button: Button
+var spawn_customer_button: Button
 
 func _ready() -> void:
 	workers_root = Node3D.new()
@@ -60,7 +61,7 @@ func _build_menu() -> void:
 	panel.offset_left = 16.0
 	panel.offset_top = 16.0
 	panel.offset_right = 244.0
-	panel.offset_bottom = 304.0
+	panel.offset_bottom = 340.0
 	canvas.add_child(panel)
 
 	var margin := MarginContainer.new()
@@ -82,6 +83,11 @@ func _build_menu() -> void:
 	spawn_button.text = "Spawn worker"
 	spawn_button.pressed.connect(_spawn_worker)
 	layout.add_child(spawn_button)
+
+	spawn_customer_button = Button.new()
+	spawn_customer_button.text = "Spawn customer"
+	spawn_customer_button.pressed.connect(_spawn_customer)
+	layout.add_child(spawn_customer_button)
 
 	send_button = Button.new()
 	send_button.text = "Send to register"
@@ -137,6 +143,24 @@ func _spawn_worker() -> void:
 	workers_root.add_child(worker)
 	worker.global_position = _get_worker_spawn_position(worker_count - 1)
 	_select_worker(worker)
+
+func _spawn_customer() -> void:
+	var customer_manager := _resolve_customer_manager()
+	if customer_manager == null:
+		push_warning("Worker menu could not find CustomerManager.")
+		_set_status_message("CustomerManager not found.")
+		return
+	if not customer_manager.has_method("spawn_customer_now"):
+		push_warning("CustomerManager does not expose spawn_customer_now().")
+		_set_status_message("Customer spawn method missing.")
+		return
+
+	var customer := customer_manager.call("spawn_customer_now") as CharacterBody3D
+	if customer == null:
+		_set_status_message("Customer limit reached.")
+		return
+
+	_set_status_message("Spawned %s." % customer.name)
 
 func _send_selected_worker_to_register() -> void:
 	if selected_worker == null:
@@ -522,6 +546,12 @@ func _resolve_worker_spawn_point() -> Node3D:
 	if current_scene != null:
 		return current_scene.find_child("WorkerSpawnPoint", true, false) as Node3D
 	return null
+
+func _resolve_customer_manager() -> Node:
+	var current_scene := get_tree().current_scene
+	if current_scene == null:
+		return null
+	return current_scene.find_child("CustomerManager", true, false)
 
 func _find_register_target(from_position: Vector3) -> Node3D:
 	var register_markers := _get_register_markers("Approach")

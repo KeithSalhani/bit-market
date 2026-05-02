@@ -42,6 +42,8 @@ var visual_node: Node3D = null
 var animation_player: AnimationPlayer = null
 var _active_seated_animation: StringName = StringName()
 var _visual_rest_position := Vector3.ZERO
+var _has_look_target := false
+var _look_target := Vector3.ZERO
 
 func _ready() -> void:
 	_refresh_visual_references()
@@ -61,6 +63,16 @@ func set_navigation_target(target_position: Vector3) -> void:
 	_reset_visual_seated_offset()
 	_release_target_seat()
 	_state = NpcState.MOVING
+	_has_look_target = false
+	_set_navigation_target(target_position)
+
+func set_navigation_target_with_look_target(target_position: Vector3, look_target: Vector3) -> void:
+	_active_seated_animation = StringName()
+	_reset_visual_seated_offset()
+	_release_target_seat()
+	_state = NpcState.MOVING
+	_look_target = look_target
+	_has_look_target = true
 	_set_navigation_target(target_position)
 
 func sit_at_seat(seat: Node3D) -> void:
@@ -103,6 +115,7 @@ func stand_up() -> void:
 	_reset_visual_seated_offset()
 	_release_target_seat()
 	_active_seated_animation = StringName()
+	_has_look_target = false
 	_state = NpcState.IDLE
 	_has_target = false
 	_play_animation(idle_animation)
@@ -132,6 +145,8 @@ func _handle_arrival() -> void:
 	_has_target = false
 	if _state == NpcState.MOVING:
 		_state = NpcState.IDLE
+	if _has_look_target:
+		_face_target(_look_target, 1.0)
 	arrived_at_target.emit(target_pos)
 
 func clear_navigation_target() -> void:
@@ -162,9 +177,9 @@ func _physics_process(delta: float) -> void:
 			direction = Vector3.ZERO
 
 	if direction != Vector3.ZERO:
-		var target_rotation := atan2(direction.x, direction.z)
-		if visual_node != null:
-			visual_node.rotation.y = rotate_toward(visual_node.rotation.y, target_rotation, turn_speed * delta)
+		_face_direction(direction, delta)
+	elif _has_look_target:
+		_face_target(_look_target, delta)
 
 	var target_velocity := direction * move_speed
 	var blend_rate := deceleration
@@ -186,6 +201,19 @@ func _is_navigation_target_reached() -> bool:
 		return true
 	return navigation_agent.is_navigation_finished()
 
+func _face_target(target_position: Vector3, delta: float) -> void:
+	var direction := target_position - global_position
+	direction.y = 0.0
+	if direction.length() <= 0.01:
+		return
+	_face_direction(direction.normalized(), delta)
+
+func _face_direction(direction: Vector3, delta: float) -> void:
+	if visual_node == null:
+		return
+	var target_rotation := atan2(direction.x, direction.z)
+	visual_node.rotation.y = rotate_toward(visual_node.rotation.y, target_rotation, turn_speed * delta)
+
 func _finish_sitting() -> void:
 	_has_target = false
 	velocity = Vector3.ZERO
@@ -204,7 +232,31 @@ func _finish_sitting() -> void:
 	else:
 		_active_seated_animation = resolved_seated_animation
 	if print_debug_messages and _target_seat != null:
-		print("NPC seated at: ", _target_seat.get_path(), " animation: ", resolved_seated_animation)
+		var character_label := ""
+		if _has_property("character_id"):
+			character_label = " character: %s" % String(get("character_id"))
+		var seat_height_offset := 0.0
+		if _target_seat.has_meta("height_offset"):
+			seat_height_offset = float(_target_seat.get_meta("height_offset"))
+		print(
+			"NPC seated at: ",
+			_target_seat.get_path(),
+			" seat_origin: ",
+			_target_seat_transform.origin,
+			" actor_origin: ",
+			global_position,
+			" seat_height_offset: ",
+			seat_height_offset,
+			character_label,
+			" animation: ",
+			resolved_seated_animation
+		)
+
+func _has_property(property_name: String) -> bool:
+	for property in get_property_list():
+		if String(property.get("name", "")) == property_name:
+			return true
+	return false
 
 func _release_target_seat() -> void:
 	if _target_seat == null:

@@ -11,7 +11,11 @@ extends Node3D
 @export var table_label_height := 1.9
 @export var seat_label_height := 1.15
 @export var seat_marker_height := 0.55
+@export var indexed_table_seat_height_offset := -0.12
+@export var table_seat_height_offsets: Dictionary = {}
+@export var chair_seat_toward_table_offset := 0.35
 @export var armchair_seat_offset := 0.45
+@export var armchair_seat_toward_table_offset := 0.18
 @export var approach_offset := 1.8
 @export var register_approach_reference_position := Vector3(0.422, 0.0, 8.304)
 @export var register_label_height := 0.8
@@ -98,6 +102,9 @@ func _collect_furniture(node: Node) -> void:
 func _is_indexed_furniture_name(node_name: String, base_name: String) -> bool:
 	if node_name == base_name:
 		return true
+	return _is_numbered_furniture_name(node_name, base_name)
+
+func _is_numbered_furniture_name(node_name: String, base_name: String) -> bool:
 	if not node_name.begins_with(base_name + "_"):
 		return false
 
@@ -128,20 +135,22 @@ func _build_table_group(table_number: int, table_group: Dictionary) -> void:
 	var source_armchairs := table_group["armchairs"] as Array
 	source_armchairs.sort_custom(_sort_nodes_clockwise.bind(source_table.global_position))
 	var approach_markers := _build_approach_markers(table_root, table_number, source_table)
+	var table_seat_height_offset := _get_table_seat_height_offset(source_table)
 
 	var seat_number := 1
 	for source_chair in source_chairs:
 		var chair_node := source_chair as Node3D
-		_add_seat(table_root, table_number, seat_number, chair_node, chair_node.global_position, chair_node.global_transform.basis, source_table.global_position, approach_markers)
+		_add_seat(table_root, table_number, seat_number, chair_node, _get_chair_seat_position(chair_node, source_table.global_position), chair_node.global_transform.basis, source_table.global_position, approach_markers, table_seat_height_offset)
 		seat_number += 1
 
 	for source_armchair in source_armchairs:
 		var armchair_node := source_armchair as Node3D
 		var armchair_basis := armchair_node.global_transform.basis
 		var side_axis := armchair_basis.x.normalized()
-		_add_seat(table_root, table_number, seat_number, armchair_node, armchair_node.global_position - side_axis * armchair_seat_offset, armchair_basis, source_table.global_position, approach_markers)
+		var armchair_center := _get_armchair_seat_center(armchair_node, source_table.global_position)
+		_add_seat(table_root, table_number, seat_number, armchair_node, armchair_center - side_axis * armchair_seat_offset, armchair_basis, source_table.global_position, approach_markers, table_seat_height_offset)
 		seat_number += 1
-		_add_seat(table_root, table_number, seat_number, armchair_node, armchair_node.global_position + side_axis * armchair_seat_offset, armchair_basis, source_table.global_position, approach_markers)
+		_add_seat(table_root, table_number, seat_number, armchair_node, armchair_center + side_axis * armchair_seat_offset, armchair_basis, source_table.global_position, approach_markers, table_seat_height_offset)
 		seat_number += 1
 
 	table_root.set_meta("seat_count", seat_number - 1)
@@ -244,15 +253,16 @@ func _add_editor_dot(parent: Node3D, dot_name: String, dot_color: Color) -> void
 	dot.material_override = material
 	parent.add_child(dot)
 
-func _add_seat(parent: Node3D, table_number: int, seat_number: int, source_seat: Node3D, seat_position: Vector3, seat_basis: Basis, table_position: Vector3, approach_markers: Array[Marker3D]) -> void:
+func _add_seat(parent: Node3D, table_number: int, seat_number: int, source_seat: Node3D, seat_position: Vector3, seat_basis: Basis, table_position: Vector3, approach_markers: Array[Marker3D], table_height_offset: float) -> void:
 	var seat_marker := Marker3D.new()
 	seat_marker.name = "Table_%02d_Seat_%02d" % [table_number, seat_number]
 	parent.add_child(seat_marker)
-	var final_position := _seat_marker_position(seat_position)
+	var final_position := _seat_marker_position(seat_position, table_height_offset)
 	seat_marker.global_transform = Transform3D(_seat_basis_aligned_to_chair(final_position, table_position, seat_basis), final_position)
 	seat_marker.set_meta("source_seat", source_seat.get_path())
 	seat_marker.set_meta("table_id", table_number)
 	seat_marker.set_meta("seat_id", seat_number)
+	seat_marker.set_meta("height_offset", table_height_offset)
 	seat_marker.set_meta("occupied", false)
 	var approach_marker := _find_nearest_approach_marker(approach_markers, final_position)
 	if approach_marker != null:
@@ -260,16 +270,30 @@ func _add_seat(parent: Node3D, table_number: int, seat_number: int, source_seat:
 
 	_add_label(seat_marker, "Label", "T%02d-S%02d" % [table_number, seat_number], final_position + Vector3.UP * seat_label_height)
 
-func _seat_marker_position(source_position: Vector3) -> Vector3:
-	var final_position := source_position
-	if Engine.is_editor_hint():
-		return final_position
+func _seat_marker_position(source_position: Vector3, table_height_offset: float) -> Vector3:
+	return source_position + Vector3.UP * (seat_marker_height + table_height_offset)
 
-	var navigation_map := get_world_3d().navigation_map
-	if NavigationServer3D.map_get_iteration_id(navigation_map) != 0:
-		final_position = NavigationServer3D.map_get_closest_point(navigation_map, source_position)
-	final_position.y += seat_marker_height
-	return final_position
+func _get_table_seat_height_offset(source_table: Node3D) -> float:
+	var table_name := String(source_table.name)
+	if table_seat_height_offsets.has(table_name):
+		return float(table_seat_height_offsets[table_name])
+	if _is_numbered_furniture_name(table_name, "Table"):
+		return indexed_table_seat_height_offset
+	return 0.0
+
+func _get_chair_seat_position(chair: Node3D, table_position: Vector3) -> Vector3:
+	var toward_table := table_position - chair.global_position
+	toward_table.y = 0.0
+	if toward_table.length() <= 0.01:
+		return chair.global_position
+	return chair.global_position + toward_table.normalized() * chair_seat_toward_table_offset
+
+func _get_armchair_seat_center(armchair: Node3D, table_position: Vector3) -> Vector3:
+	var toward_table := table_position - armchair.global_position
+	toward_table.y = 0.0
+	if toward_table.length() <= 0.01:
+		return armchair.global_position
+	return armchair.global_position + toward_table.normalized() * armchair_seat_toward_table_offset
 
 func _seat_basis_aligned_to_chair(seat_position: Vector3, table_position: Vector3, seat_basis: Basis) -> Basis:
 	var chair_forward := seat_basis.z

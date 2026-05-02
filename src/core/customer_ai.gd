@@ -45,7 +45,7 @@ func _start_ai() -> void:
 	current_target = _find_register_customer_point()
 	if current_target != null:
 		state = State.WAITING_FOR_REGISTER
-		_move_to(current_target.global_position)
+		_move_to(current_target.global_position, _get_register_look_target(current_target))
 	else:
 		_leave()
 
@@ -289,10 +289,12 @@ func _get_customer_spawn_point() -> Node3D:
 		return level.find_child("Door_01", true, false) as Node3D
 	return null
 
-func _move_to(target_pos: Vector3) -> void:
+func _move_to(target_pos: Vector3, look_target: Variant = null) -> void:
 	var nav_map = customer.get_world_3d().navigation_map
 	var closest_point = NavigationServer3D.map_get_closest_point(nav_map, target_pos)
-	if customer.has_method("set_navigation_target"):
+	if look_target is Vector3 and customer.has_method("set_navigation_target_with_look_target"):
+		customer.call("set_navigation_target_with_look_target", closest_point, look_target)
+	elif customer.has_method("set_navigation_target"):
 		customer.call("set_navigation_target", closest_point)
 
 func _send_customer_to_seat(seat: Node3D) -> void:
@@ -329,6 +331,12 @@ func _find_register_customer_point() -> Node3D:
 	_collect_register_markers(seating_map, "Opposite", customer_points)
 	if customer_points.is_empty(): return null
 	return customer_points[randi() % customer_points.size()]
+
+func _get_register_look_target(register_marker: Node3D) -> Vector3:
+	var register_root := register_marker.get_parent() as Node3D
+	if register_root != null:
+		return register_root.global_position
+	return register_marker.global_position
 
 func _collect_register_markers(node: Node, marker_suffix: String, markers: Array[Node3D]) -> void:
 	if node is Node3D:

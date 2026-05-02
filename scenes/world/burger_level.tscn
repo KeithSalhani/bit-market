@@ -33118,6 +33118,7 @@ shape = SubResource("ConcavePolygonShape3D_p51t7")
 
 [node name="SeatingMap" type="Node3D" parent="." unique_id=1480364303]
 script = ExtResource("4_vthih")
+indexed_table_seat_height_offset = 0.0
 
 [node name="WorkerSpawnPoint" type="Marker3D" parent="." unique_id=1686686192]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.2792904, 0.4, 7.491147)

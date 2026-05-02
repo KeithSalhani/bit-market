@@ -7,6 +7,22 @@ extends Node
 @export var spawn_interval_max: float = 10.0
 @export var max_customers: int = 5
 @export var spawn_point_path: NodePath = ^"../BurgerPiz2/Door_01"
+@export var randomize_character_id := true
+@export var customer_character_ids := PackedStringArray([
+	"Character_01", "Character_02", "Character_03", "Character_04", "Character_05", "Character_06", "Character_07", "Character_08",
+	"Character_09", "Character_10", "Character_11", "Character_12", "Character_13", "Character_14", "Character_15", "Character_16",
+	"Character_17_Female_Police", "Character_17_Police", "Character_18_Female_Police", "Character_18_Police",
+	"Character_19_Female_Police", "Character_19_Police", "Character_20_Female_Police", "Character_20_Police",
+	"Character_21_Female_Firefighter", "Character_21_Police", "Character_22_Female_Firefighter", "Character_22_Police",
+	"Character_23_Female_Doctor", "Character_23_Firefighter", "Character_24_Female_Doctor", "Character_24_Firefighter",
+	"Character_25_Doctor", "Character_25_Female_Police", "Character_26_Doctor", "Character_26_Female_Police",
+	"Character_27_Female_HM", "Character_27_HM", "Character_28_Female_HM", "Character_28_HM",
+	"Character_29", "Character_29_Female", "Character_30", "Character_30_Female", "Character_31", "Character_31_Female",
+	"Character_32", "Character_32_Female", "Character_33_Female",
+	"Character_Female_02", "Character_Female_03", "Character_Female_04", "Character_Female_05", "Character_Female_06",
+	"Character_Female_07", "Character_Female_08", "Character_Female_09", "Character_Female_10", "Character_Female_11",
+	"Character_Female_12", "Character_Female_13", "Character_Female_14", "Character_Female_15", "Character_Female_16"
+])
 
 var _timer: Timer
 var current_customers: int = 0
@@ -33,13 +49,21 @@ func _start_timer() -> void:
 	_timer.start(randf_range(spawn_interval_min, spawn_interval_max))
 
 func _spawn_customer() -> void:
-	if current_customers >= max_customers:
-		_start_timer()
-		return
+	spawn_customer_now()
+	_start_timer()
 
-	if customer_scenes.is_empty(): return
+func spawn_customer_now() -> CharacterBody3D:
+	if current_customers >= max_customers:
+		return null
+
+	if customer_scenes.is_empty():
+		return null
 	var scene = customer_scenes[randi() % customer_scenes.size()]
 	var customer = scene.instantiate() as CharacterBody3D
+	if customer == null:
+		return null
+
+	_randomize_customer_visual(customer)
 	add_child(customer)
 	
 	current_customers += 1
@@ -57,7 +81,20 @@ func _spawn_customer() -> void:
 	ai.set_script(script)
 	customer.add_child(ai)
 	
-	_start_timer()
+	return customer
+
+func _randomize_customer_visual(customer: CharacterBody3D) -> void:
+	if not randomize_character_id or customer == null or customer_character_ids.is_empty():
+		return
+	if not _has_property(customer, "character_id"):
+		return
+	customer.character_id = customer_character_ids[randi() % customer_character_ids.size()]
+
+func _has_property(object: Object, property_name: String) -> bool:
+	for property in object.get_property_list():
+		if String(property.get("name", "")) == property_name:
+			return true
+	return false
 
 func customer_left() -> void:
 	current_customers -= 1

@@ -7,6 +7,7 @@ extends CanvasLayer
 @onready var hire_button: Button = $MarginContainer/VBoxContainer/HBoxContainer/HireButton
 @onready var hud_row: HBoxContainer = $MarginContainer/VBoxContainer/HBoxContainer
 
+var spawn_customer_button: Button
 var workers_button: Button
 var workers_panel: PanelContainer
 var workers_list: VBoxContainer
@@ -23,6 +24,7 @@ func _ready() -> void:
 	
 	hire_button.text = "Hire Worker ($100)"
 	hire_button.connect("pressed", _on_hire_button_pressed)
+	_create_spawn_customer_button()
 	_create_worker_activity_ui()
 	
 	_on_money_changed(rm.money)
@@ -59,6 +61,26 @@ func _on_hire_button_pressed() -> void:
 		var emp_manager = level.find_child("EmployeeManager", true, false)
 		if emp_manager != null and emp_manager.has_method("hire_worker"):
 			emp_manager.call("hire_worker")
+
+func _create_spawn_customer_button() -> void:
+	spawn_customer_button = Button.new()
+	spawn_customer_button.text = "Spawn Customer"
+	spawn_customer_button.pressed.connect(_on_spawn_customer_button_pressed)
+	hud_row.add_child(spawn_customer_button)
+
+func _on_spawn_customer_button_pressed() -> void:
+	var level := get_tree().current_scene
+	if level == null:
+		return
+
+	var customer_manager := level.find_child("CustomerManager", true, false)
+	if customer_manager == null or not customer_manager.has_method("spawn_customer_now"):
+		push_warning("HUD could not find CustomerManager.spawn_customer_now().")
+		return
+
+	var customer := customer_manager.call("spawn_customer_now") as CharacterBody3D
+	if customer == null:
+		push_warning("Could not spawn customer. Customer limit may be reached.")
 
 func _create_worker_activity_ui() -> void:
 	workers_button = Button.new()

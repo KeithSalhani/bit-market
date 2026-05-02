@@ -64,11 +64,14 @@ func _execute_process_order(task: Object) -> void:
 	
 	var register = register_marker.get_parent()
 	var stand_point = register_marker
+	var register_look_target: Vector3 = register_marker.global_position
 	if register != null:
+		if register is Node3D:
+			register_look_target = (register as Node3D).global_position
 		var found = register.get_node_or_null(NodePath(String(register.name) + "_Approach"))
 		if found != null: stand_point = found
 	
-	_move_worker_to(stand_point.global_position, register_marker.global_position)
+	_move_worker_to(stand_point.global_position, register_look_target)
 	await _wait_for_arrival()
 	
 	if is_instance_valid(customer) and customer.has_method("take_order"):
