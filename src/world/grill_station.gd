@@ -6,6 +6,7 @@ extends Node3D
 @export var meat_place_point_path: NodePath = ^"GrillMeatPlacePoint"
 @export var meat_pickup_point_path: NodePath = ^"GrillMeatPickupPoint"
 @export var smoke_origin_path: NodePath = ^"GrillSmokeOrigin"
+@export var grill_sound_path: NodePath
 @export var batch_size := 4
 @export var cook_seconds := 6.0
 @export var grilled_meat_scale := Vector3(0.001, 0.001, 0.001)
@@ -99,7 +100,9 @@ func cook_meat(worker: Node, raw_meat_pickup_position: Vector3, reach_controller
 
 	_set_grill_meat_visible(true)
 	_set_smoke_emitting(true)
+	_set_grill_sound_playing(true)
 	await get_tree().create_timer(cook_seconds * maxf(duration_multiplier, 0.05)).timeout
+	_set_grill_sound_playing(false)
 	_set_smoke_emitting(false)
 
 	await reach_controller.call("reach_to", pickup_point.global_position)
@@ -172,6 +175,35 @@ func _set_smoke_emitting(value: bool) -> void:
 	for particles in _smoke_particles:
 		if particles != null and is_instance_valid(particles):
 			particles.emitting = value
+
+func _set_grill_sound_playing(value: bool) -> void:
+	var grill_sound := _get_grill_sound()
+	if grill_sound == null:
+		return
+	if value:
+		if grill_sound.has_method("play") and not bool(grill_sound.get("playing")):
+			grill_sound.call("play")
+	elif grill_sound.has_method("stop"):
+		grill_sound.call("stop")
+
+func _get_grill_sound() -> Node:
+	if not grill_sound_path.is_empty():
+		var configured := get_node_or_null(grill_sound_path)
+		if configured != null:
+			return configured
+
+	var scene_root := get_tree().current_scene
+	if scene_root == null:
+		return null
+	var direct := scene_root.get_node_or_null(^"grill-sound")
+	if direct != null:
+		return direct
+	var names := ["grill-sound", "GrillSound", "grill_sound"]
+	for sound_name in names:
+		var found := scene_root.find_child(sound_name, true, false)
+		if found != null:
+			return found
+	return null
 
 func _get_batch_offsets() -> Array[Vector3]:
 	return [
