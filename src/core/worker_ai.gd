@@ -65,7 +65,7 @@ func _execute_process_order(task: Object) -> void:
 	var register = register_marker.get_parent()
 	var stand_point = register_marker
 	if register != null:
-		var found = register.get_node_or_null(NodePath(String(register.name) + "_Opposite"))
+		var found = register.get_node_or_null(NodePath(String(register.name) + "_Approach"))
 		if found != null: stand_point = found
 	
 	_move_worker_to(stand_point.global_position, register_marker.global_position)
@@ -80,8 +80,13 @@ func _execute_cook_meat(task: Object) -> void:
 	_set_task_status(task, "Cooking", "Claiming grill")
 	var grill = task.args.get("station") as Node
 	if grill == null or not is_instance_valid(grill): return
-	
-	if grill.has_method("reserve_for") and not bool(grill.call("reserve_for", _worker)): return
+	var tm = get_node("/root/TaskManager")
+	var reserved_grill := false
+	if grill.has_method("reserve_for"):
+		reserved_grill = bool(grill.call("reserve_for", _worker))
+		if not reserved_grill:
+			tm.cancel_task(task)
+			return
 	
 	var entrance = grill.call("get_entrance_point") if grill.has_method("get_entrance_point") else grill
 	var snap = grill.call("get_snap_point") if grill.has_method("get_snap_point") else grill
@@ -105,14 +110,19 @@ func _execute_cook_meat(task: Object) -> void:
 			if pt: raw_pos = pt.global_position
 		var cooked_count = await grill.call("cook_meat", _worker, raw_pos, reach)
 		if cooked_count > 0:
-			var prep = get_tree().current_scene.find_child("BurgerPrepStation", true, false)
+			var prep = task.args.get("prep_station") as Node
+			if prep == null or not is_instance_valid(prep):
+				prep = get_tree().current_scene.find_child("BurgerPrepStation", true, false)
 			if prep and prep.has_method("stock_cooked_meat"):
 				prep.call("stock_cooked_meat", cooked_count)
+	if reserved_grill and grill.has_method("release_reservation"):
+		grill.call("release_reservation", _worker)
 
 func _execute_fry_fries(task: Object) -> void:
 	_set_task_status(task, "Frying", "Claiming fryer")
 	var fryer = task.args.get("station") as Node
 	var food_table = task.args.get("food_table") as Node
+	var food_type := String(task.args.get("food_type", "fries"))
 	if fryer == null or not is_instance_valid(fryer) or food_table == null or not is_instance_valid(food_table): return
 	
 	if fryer.has_method("reserve_for") and not bool(fryer.call("reserve_for", _worker)): return
@@ -157,22 +167,25 @@ func _execute_fry_fries(task: Object) -> void:
 		
 	var tm = get_node("/root/TaskManager")
 	var customer = task.args.get("customer")
+	var delivery_task_added := false
 	for i in range(mini(2, fried_outputs.size())):
 		var fries = fried_outputs[i]
 		if not is_instance_valid(fries): continue
+		fries.set_meta("food_type", food_type)
 		
 		var place_pos = _get_food_table_next_burger_position(food_table, table_storage)
 		if reach != null and reach.has_method("reach_to"):
 			await reach.call("reach_to", place_pos)
 			
 		if food_table.has_method("store_food_item"):
-			food_table.call("store_food_item", fries)
+			food_table.call("store_food_item", fries, food_type)
 		else:
 			fries.reparent(food_table, true)
 			fries.global_position = place_pos
 			
-		if is_instance_valid(customer):
-			tm.add_task(tm.TaskType.DELIVER_FOOD, {"food_table": food_table, "customer": customer, "seat": customer.my_seat})
+		if is_instance_valid(customer) and not delivery_task_added:
+			tm.add_task(tm.TaskType.DELIVER_FOOD, {"food_table": food_table, "customer": customer, "seat": customer.my_seat, "food_type": food_type})
+			delivery_task_added = true
 			
 		if is_instance_valid(carry_attachments[i]):
 			carry_attachments[i].queue_free()
@@ -181,6 +194,7 @@ func _execute_assemble_burger(task: Object) -> void:
 	_set_task_status(task, "Assembling", "Claiming prep station")
 	var prep = task.args.get("station") as Node
 	var food_table = task.args.get("food_table") as Node
+	var food_type := String(task.args.get("food_type", "burger"))
 	if prep == null or not is_instance_valid(prep) or food_table == null or not is_instance_valid(food_table): return
 
 	var reserved_prep := false
@@ -222,6 +236,7 @@ func _execute_assemble_burger(task: Object) -> void:
 			
 		var burger = await prep.call("pick_finished_burger_for_transport", _worker)
 		if burger:
+			burger.set_meta("food_type", food_type)
 			var carry = _attach_carried_food_to_hand(_worker, burger, "RightHand", "CarriedBurger", Vector3(0, -0.12, 0.04))
 			_set_carried_food_offsets([carry], Vector3(0, -0.24, 0.08))
 			
@@ -237,7 +252,9 @@ func _execute_assemble_burger(task: Object) -> void:
 			if reach and reach.has_method("reach_to"):
 				await reach.call("reach_to", place_pos)
 				
-			if food_table.has_method("store_burger"):
+			if food_table.has_method("store_food_item"):
+				food_table.call("store_food_item", burger, food_type)
+			elif food_table.has_method("store_burger"):
 				food_table.call("store_burger", burger)
 			else:
 				if burger.get_parent() != null:
@@ -249,17 +266,15 @@ func _execute_assemble_burger(task: Object) -> void:
 			var tm = get_node("/root/TaskManager")
 			var customer = task.args.get("customer")
 			if is_instance_valid(customer):
-				tm.add_task(tm.TaskType.DELIVER_FOOD, {"food_table": food_table, "customer": customer, "seat": customer.my_seat})
+				tm.add_task(tm.TaskType.DELIVER_FOOD, {"food_table": food_table, "customer": customer, "seat": customer.my_seat, "food_type": food_type})
 				
 			if is_instance_valid(carry):
 				carry.queue_free()
 	else:
 		# Could not assemble (missing meat).
 		var tm = get_node("/root/TaskManager")
-		var grill = get_tree().current_scene.find_child("Grill_002", true, false)
-		if grill:
-			var gc = grill.get_node_or_null("Grill002Station")
-			tm.add_task(tm.TaskType.COOK_MEAT, {"station": gc if gc else grill})
+		if tm.has_method("request_cooked_meat_for_prep"):
+			tm.call("request_cooked_meat_for_prep", prep)
 		if reserved_prep and prep.has_method("release_reservation"):
 			prep.call("release_reservation", _worker)
 		tm.cancel_task(task)
@@ -274,6 +289,7 @@ func _execute_deliver_food(task: Object) -> void:
 	var food_table = task.args.get("food_table") as Node
 	var customer = task.args.get("customer") as Node
 	var seat = task.args.get("seat") as Node3D
+	var food_type := String(task.args.get("food_type", ""))
 	if food_table == null or customer == null or seat == null:
 		tm.fail_task(task)
 		return
@@ -293,13 +309,15 @@ func _execute_deliver_food(task: Object) -> void:
 			tm.fail_task(task)
 			return
 		_set_task_status(task, "Delivering", "Waiting for food on table")
-		if food_table.has_method("get_first_food_item"):
+		if food_table.has_method("get_first_food_item_by_type"):
+			food_item = food_table.call("get_first_food_item_by_type", food_type)
+		elif food_table.has_method("get_first_food_item"):
 			food_item = food_table.call("get_first_food_item")
 		if food_item == null:
 			await get_tree().create_timer(1.0).timeout
 			
 	if not is_instance_valid(customer) or food_item == null or not _delivery_is_valid(customer, task):
-		_return_food_to_table(food_table, food_item)
+		_return_food_to_table(food_table, food_item, food_type)
 		tm.fail_task(task)
 		return
 		
@@ -307,7 +325,7 @@ func _execute_deliver_food(task: Object) -> void:
 	_move_worker_to(table_stand.global_position, table_storage.global_position)
 	await _wait_for_arrival()
 	if not _delivery_is_valid(customer, task):
-		_return_food_to_table(food_table, food_item)
+		_return_food_to_table(food_table, food_item, food_type)
 		tm.fail_task(task)
 		return
 	
@@ -322,7 +340,7 @@ func _execute_deliver_food(task: Object) -> void:
 	_set_carried_food_offsets([carry], Vector3(0, -0.24, 0.08))
 	if not _delivery_is_valid(customer, task):
 		if is_instance_valid(carry): carry.queue_free()
-		_return_food_to_table(food_table, food_item)
+		_return_food_to_table(food_table, food_item, food_type)
 		tm.fail_task(task)
 		return
 	
@@ -337,32 +355,16 @@ func _execute_deliver_food(task: Object) -> void:
 	
 	if not is_instance_valid(customer) or not _delivery_is_valid(customer, task):
 		if is_instance_valid(carry): carry.queue_free()
-		_return_food_to_table(food_table, food_item)
+		_return_food_to_table(food_table, food_item, food_type)
 		tm.fail_task(task)
 		return
 		
-	var place_pos = seat.global_position + Vector3(0, 0.8, 0.4)
-	if reach and reach.has_method("reach_to"):
-		await reach.call("reach_to", place_pos)
-		if food_item.get_parent() != null:
-			food_item.reparent(seat, true)
-		else:
-			seat.add_child(food_item)
-		food_item.global_position = place_pos
-	else:
-		if food_item.get_parent() != null:
-			food_item.reparent(seat, true)
-		else:
-			seat.add_child(food_item)
-		food_item.global_position = place_pos
-		
-	if is_instance_valid(carry):
-		carry.queue_free()
-		
 	if customer.has_method("receive_food"):
-		var received = bool(customer.call("receive_food", task))
+		var received = bool(customer.call("receive_food", task, food_item))
+		if is_instance_valid(carry):
+			carry.queue_free()
 		if not received:
-			_return_food_to_table(food_table, food_item)
+			_return_food_to_table(food_table, food_item, food_type)
 			tm.fail_task(task)
 			return
 		_set_task_status(task, "Delivered", "Customer received food")
@@ -529,11 +531,11 @@ func _delivery_is_valid(customer: Node, task: Object) -> bool:
 		return bool(customer.call("can_accept_delivery_task", task))
 	return true
 
-func _return_food_to_table(food_table: Node, food_item: Node3D) -> void:
+func _return_food_to_table(food_table: Node, food_item: Node3D, food_type: String = "") -> void:
 	if food_table == null or food_item == null or not is_instance_valid(food_item):
 		return
 	if food_table.has_method("store_food_item"):
-		food_table.call("store_food_item", food_item)
+		food_table.call("store_food_item", food_item, food_type)
 		return
 	var table_storage := _get_food_table_burger_storage_point(food_table)
 	if food_item.get_parent() != null:

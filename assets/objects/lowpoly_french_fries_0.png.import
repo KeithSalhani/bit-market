@@ -3,9 +3,9 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ba7wy47rbtrk"
-path.s3tc="res://.godot/imported/lowpoly_french_fries_0.png-b59f3a84086b40096d3bb101dbe4faa1.s3tc.ctex"
+path.etc2="res://.godot/imported/lowpoly_french_fries_0.png-b59f3a84086b40096d3bb101dbe4faa1.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
@@ -15,7 +15,7 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/objects/lowpoly_french_fries_0.png"
-dest_files=["res://.godot/imported/lowpoly_french_fries_0.png-b59f3a84086b40096d3bb101dbe4faa1.s3tc.ctex"]
+dest_files=["res://.godot/imported/lowpoly_french_fries_0.png-b59f3a84086b40096d3bb101dbe4faa1.etc2.ctex"]
 
 [params]
 

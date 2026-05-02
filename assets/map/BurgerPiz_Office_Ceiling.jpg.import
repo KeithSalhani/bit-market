@@ -3,9 +3,9 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cl3swv3oin3b5"
-path.s3tc="res://.godot/imported/BurgerPiz_Office_Ceiling.jpg-f9cbc28d4f91c6ec7bc3d1c87904070b.s3tc.ctex"
+path.etc2="res://.godot/imported/BurgerPiz_Office_Ceiling.jpg-f9cbc28d4f91c6ec7bc3d1c87904070b.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
@@ -15,7 +15,7 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/map/BurgerPiz_Office_Ceiling.jpg"
-dest_files=["res://.godot/imported/BurgerPiz_Office_Ceiling.jpg-f9cbc28d4f91c6ec7bc3d1c87904070b.s3tc.ctex"]
+dest_files=["res://.godot/imported/BurgerPiz_Office_Ceiling.jpg-f9cbc28d4f91c6ec7bc3d1c87904070b.etc2.ctex"]
 
 [params]
 

@@ -5,6 +5,7 @@ extends Node3D
 @export var ray_length := 1000.0
 @export var navigation_plane_y := 0.4
 @export var spawn_spacing := 0.55
+@export_node_path("Node3D") var worker_spawn_point_path: NodePath = ^"../WorkerSpawnPoint"
 @export var prep_station_path: NodePath = ^"../Kitchen/Preperation_Shelf/prep_shelf/BurgerPrepStation"
 @export var food_table_path: NodePath = ^"../Kitchen/FoodTable"
 @export var fryer_1_path: NodePath = ^"../Kitchen/Fryer_1"
@@ -496,17 +497,31 @@ func _get_register_position(register_marker: Node3D) -> Vector3:
 	return register_marker.global_position
 
 func _get_worker_spawn_position(spawn_index: int) -> Vector3:
-	var spawn_markers := _get_register_markers("Opposite")
+	var worker_spawn_point := _resolve_worker_spawn_point()
+	if worker_spawn_point != null:
+		return worker_spawn_point.global_position + Vector3.RIGHT * float(spawn_index) * spawn_spacing
+
+	var spawn_markers := _get_register_markers("Approach")
 	if not spawn_markers.is_empty():
 		var marker := spawn_markers[spawn_index % spawn_markers.size()]
 		var row := floori(float(spawn_index) / float(spawn_markers.size()))
 		return marker.global_position + Vector3.RIGHT * float(row) * spawn_spacing
 
-	var register_markers := _get_register_markers("Approach")
+	var register_markers := _get_register_markers("Opposite")
 	if not register_markers.is_empty():
 		return register_markers[0].global_position + Vector3.RIGHT * float(spawn_index + 1) * spawn_spacing
 
 	return Vector3(float(spawn_index) * spawn_spacing, navigation_plane_y, 0.0)
+
+func _resolve_worker_spawn_point() -> Node3D:
+	var configured := get_node_or_null(worker_spawn_point_path) as Node3D
+	if configured != null:
+		return configured
+
+	var current_scene := get_tree().current_scene
+	if current_scene != null:
+		return current_scene.find_child("WorkerSpawnPoint", true, false) as Node3D
+	return null
 
 func _find_register_target(from_position: Vector3) -> Node3D:
 	var register_markers := _get_register_markers("Approach")

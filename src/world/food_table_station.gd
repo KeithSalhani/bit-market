@@ -37,12 +37,24 @@ func get_available_food_capacity() -> int:
 	return open_slots
 
 func get_first_food_item() -> Node3D:
+	return get_first_food_item_by_type("")
+
+func get_first_food_item_by_type(food_type: String = "") -> Node3D:
 	for index in range(_stored_food_items.size()):
 		var food_item := _stored_food_items[index]
-		if food_item != null and is_instance_valid(food_item):
+		if food_item != null and is_instance_valid(food_item) and _food_item_matches_type(food_item, food_type):
 			_stored_food_items[index] = null
 			return food_item
 	return null
+
+func has_food_item(food_type: String = "") -> bool:
+	for index in range(_stored_food_items.size()):
+		var food_item := _stored_food_items[index]
+		if food_item != null and is_instance_valid(food_item) and _food_item_matches_type(food_item, food_type):
+			return true
+		if food_item != null and not is_instance_valid(food_item):
+			_stored_food_items[index] = null
+	return false
 
 func get_next_food_position() -> Vector3:
 	var slot_index := _get_next_open_slot()
@@ -53,13 +65,18 @@ func get_next_food_position() -> Vector3:
 		return Vector3.ZERO
 	return _get_slot_position(slot_index)
 
-func store_food_item(food_item: Node3D) -> bool:
+func store_food_item(food_item: Node3D, food_type: String = "") -> bool:
 	if food_item == null or not is_instance_valid(food_item):
 		return false
 
 	var slot_index := _get_next_open_slot()
 	if slot_index == -1:
 		return false
+
+	if food_type.is_empty():
+		food_type = _infer_food_type(food_item)
+	if not food_type.is_empty():
+		food_item.set_meta("food_type", food_type)
 
 	var stored_global_scale := food_item.scale
 	if food_item.is_inside_tree():
@@ -75,6 +92,22 @@ func store_food_item(food_item: Node3D) -> bool:
 	food_item.visible = true
 	_stored_food_items[slot_index] = food_item
 	return true
+
+func _food_item_matches_type(food_item: Node3D, food_type: String) -> bool:
+	if food_type.is_empty():
+		return true
+	return _infer_food_type(food_item) == food_type
+
+func _infer_food_type(food_item: Node3D) -> String:
+	if food_item.has_meta("food_type"):
+		return String(food_item.get_meta("food_type"))
+
+	var normalized_name := String(food_item.name).to_lower()
+	if normalized_name.contains("fries"):
+		return "fries"
+	if normalized_name.contains("burger"):
+		return "burger"
+	return ""
 
 func get_worker_stand_point() -> Node3D:
 	return _find_named_descendant(self, "workerstandpoint") as Node3D

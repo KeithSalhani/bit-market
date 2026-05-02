@@ -40,7 +40,15 @@ func get_next_task(worker: Node) -> Task:
 	while i < pending_tasks.size():
 		var task = pending_tasks[i]
 		if _can_worker_do_task(role, task.type):
+			if _station_has_active_task(task):
+				i += 1
+				continue
 			if _task_station_is_unavailable(task):
+				i += 1
+				continue
+
+			if task.type == TaskType.ASSEMBLE_BURGER and _burger_prep_is_waiting_for_meat(task):
+				_ensure_cook_meat_task_for_burger(task)
 				i += 1
 				continue
 
@@ -53,13 +61,18 @@ func get_next_task(worker: Node) -> Task:
 					continue
 				# Only assign deliver food if there is actually food on the table
 				var food_table = task.args.get("food_table")
+				var food_type := String(task.args.get("food_type", ""))
 				if food_table and food_table.has_method("get_first_food_item"):
 					# We peek, we don't take it yet
-					var has_food = false
-					for item in food_table._stored_food_items:
-						if item != null and is_instance_valid(item):
-							has_food = true
-							break
+					var has_food = true
+					if food_table.has_method("has_food_item"):
+						has_food = bool(food_table.call("has_food_item", food_type))
+					else:
+						has_food = false
+						for item in food_table._stored_food_items:
+							if item != null and is_instance_valid(item):
+								has_food = true
+								break
 					if not has_food:
 						i += 1
 						continue # Skip this task for now, no food ready
@@ -92,6 +105,62 @@ func _task_station_is_unavailable(task: Task) -> bool:
 		return false
 	if station.has_method("is_available"):
 		return not bool(station.call("is_available"))
+	return false
+
+func _station_has_active_task(task: Task) -> bool:
+	var station = task.args.get("station")
+	if station == null or not is_instance_valid(station):
+		return false
+	for active_task in active_tasks:
+		if active_task == task:
+			continue
+		if active_task.args.get("station") == station:
+			return true
+	return false
+
+func _burger_prep_is_waiting_for_meat(task: Task) -> bool:
+	var station = task.args.get("station")
+	if station == null or not is_instance_valid(station):
+		return false
+	if not station.has_method("has_cooked_meat"):
+		return false
+	return not bool(station.call("has_cooked_meat"))
+
+func _ensure_cook_meat_task_for_burger(task: Task) -> void:
+	var prep_station = task.args.get("station")
+	request_cooked_meat_for_prep(prep_station)
+
+func request_cooked_meat_for_prep(prep_station: Node) -> void:
+	if prep_station == null or not is_instance_valid(prep_station):
+		return
+	if _has_pending_or_active_cook_meat_task(prep_station):
+		return
+
+	var grill_station: Node = null
+	if prep_station.has_method("get_grill_station"):
+		grill_station = prep_station.call("get_grill_station") as Node
+	if grill_station == null or not is_instance_valid(grill_station):
+		return
+
+	add_task(TaskType.COOK_MEAT, {"station": grill_station, "prep_station": prep_station})
+
+func _has_pending_or_active_cook_meat_task(prep_station: Node) -> bool:
+	for task in pending_tasks:
+		if _is_cook_meat_task_for_prep(task, prep_station):
+			return true
+	for task in active_tasks:
+		if _is_cook_meat_task_for_prep(task, prep_station):
+			return true
+	return false
+
+func _is_cook_meat_task_for_prep(task: Task, prep_station: Node) -> bool:
+	if task.type != TaskType.COOK_MEAT:
+		return false
+	if task.args.get("prep_station") == prep_station:
+		return true
+	var grill_station = task.args.get("station")
+	if prep_station != null and prep_station.has_method("get_grill_station") and grill_station != null:
+		return prep_station.call("get_grill_station") == grill_station
 	return false
 
 func complete_task(task: Task) -> void:
@@ -143,7 +212,8 @@ func get_task_summary(task: Task) -> Dictionary:
 		"customer": _node_label(customer),
 		"customer_path": _node_path_label(customer),
 		"station": _node_label(task.args.get("station")),
-		"food_table": _node_label(task.args.get("food_table"))
+		"food_table": _node_label(task.args.get("food_table")),
+		"food_type": String(task.args.get("food_type", "-"))
 	}
 
 func _prepare_task_for_queue(task: Task) -> bool:

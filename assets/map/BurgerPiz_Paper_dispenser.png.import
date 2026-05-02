@@ -3,9 +3,9 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dinn8f2eu6odv"
-path.s3tc="res://.godot/imported/BurgerPiz_Paper_dispenser.png-2032743520201d91bcd95f5297ccd1d4.s3tc.ctex"
+path.etc2="res://.godot/imported/BurgerPiz_Paper_dispenser.png-2032743520201d91bcd95f5297ccd1d4.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
@@ -15,7 +15,7 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/map/BurgerPiz_Paper_dispenser.png"
-dest_files=["res://.godot/imported/BurgerPiz_Paper_dispenser.png-2032743520201d91bcd95f5297ccd1d4.s3tc.ctex"]
+dest_files=["res://.godot/imported/BurgerPiz_Paper_dispenser.png-2032743520201d91bcd95f5297ccd1d4.etc2.ctex"]
 
 [params]
 

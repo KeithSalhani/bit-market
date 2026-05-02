@@ -15,9 +15,27 @@ const MEAT_SCENE := preload("res://scenes/props/food/meat.tscn")
 
 var _grill_meat_props: Array[Node3D] = []
 var _smoke_particles: Array[GPUParticles3D] = []
+var _is_busy := false
+var _reserved_worker: Node = null
 
 func _ready() -> void:
 	_prepare_grill_visuals()
+
+func is_available() -> bool:
+	return not _is_busy
+
+func reserve_for(worker: Node) -> bool:
+	if _is_busy and _reserved_worker != worker:
+		return false
+	_is_busy = true
+	_reserved_worker = worker
+	return true
+
+func release_reservation(worker: Node = null) -> void:
+	if worker != null and _reserved_worker != null and _reserved_worker != worker:
+		return
+	_is_busy = false
+	_reserved_worker = null
 
 func get_entrance_point() -> Node3D:
 	return get_node_or_null(entrance_point_path) as Node3D
@@ -46,10 +64,15 @@ func get_look_target() -> Vector3:
 func cook_meat(worker: Node, raw_meat_pickup_position: Vector3, reach_controller: Node = null) -> int:
 	if worker == null:
 		return 0
+	if _is_busy and _reserved_worker != worker:
+		return 0
+	_is_busy = true
+	_reserved_worker = worker
 	if reach_controller == null:
 		reach_controller = _get_reach_controller(worker)
 	if reach_controller == null:
 		push_warning("Grill station cannot cook meat: selected worker has no right-hand IK reach controller.")
+		release_reservation(worker)
 		return 0
 
 	var entrance_point := get_entrance_point()
@@ -58,9 +81,11 @@ func cook_meat(worker: Node, raw_meat_pickup_position: Vector3, reach_controller
 	var pickup_point := get_meat_pickup_point()
 	if entrance_point == null or snap_point == null or place_point == null or pickup_point == null:
 		push_warning("Grill station cannot cook meat: grill markers are incomplete.")
+		release_reservation(worker)
 		return 0
 
 	if not await _navigate_worker_to(worker, entrance_point.global_position, get_look_target()):
+		release_reservation(worker)
 		return 0
 
 	if worker.has_method("snap_to_station"):
@@ -79,6 +104,7 @@ func cook_meat(worker: Node, raw_meat_pickup_position: Vector3, reach_controller
 
 	await reach_controller.call("reach_to", pickup_point.global_position)
 	_set_grill_meat_visible(false)
+	release_reservation(worker)
 	return batch_size
 
 func _navigate_worker_to(worker: Node, target_position: Vector3, look_target: Vector3) -> bool:

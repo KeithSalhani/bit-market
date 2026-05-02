@@ -20,6 +20,16 @@ var _wait_timer: float = 0.0
 var _has_ordered: bool = false
 var _food_received: bool = false
 var _delivery_reservation: Variant = null
+var ordered_food_type := ""
+var _order_label: Label3D = null
+var _held_food_attachment: Node3D = null
+var _held_food_item: Node3D = null
+
+const FOOD_BURGER := "burger"
+const FOOD_FRIES := "fries"
+const ORDER_LABEL_HEIGHT := 2.1
+const CUSTOMER_HAND_BONE := "RightHand"
+const CUSTOMER_HAND_OFFSET := Vector3(0.0, -0.1, 0.04)
 
 func _ready() -> void:
 	customer = get_parent() as CharacterBody3D
@@ -32,7 +42,7 @@ func _ready() -> void:
 
 func _start_ai() -> void:
 	# Immediately find seat before entering if we want to ensure capacity, but let's just go to register first
-	current_target = _find_register_approach()
+	current_target = _find_register_customer_point()
 	if current_target != null:
 		state = State.WAITING_FOR_REGISTER
 		_move_to(current_target.global_position)
@@ -91,6 +101,8 @@ func _is_at_target() -> bool:
 func take_order(worker: Node) -> void:
 	if _has_ordered: return
 	_has_ordered = true
+	ordered_food_type = _choose_order_type()
+	_show_order_label()
 	
 	var level = customer.get_tree().current_scene
 	var prep_station = level.find_child("BurgerPrepStation", true, false)
@@ -98,10 +110,10 @@ func take_order(worker: Node) -> void:
 	var food_table = level.find_child("FoodTable", true, false)
 	
 	if food_table != null:
-		if randf() > 0.5 and prep_station != null:
-			tm.add_task(tm.TaskType.ASSEMBLE_BURGER, {"station": prep_station, "food_table": food_table, "customer": self})
-		elif fryer_station != null:
-			tm.add_task(tm.TaskType.FRY_FRIES, {"station": fryer_station, "food_table": food_table, "customer": self})
+		if ordered_food_type == FOOD_BURGER and prep_station != null:
+			tm.add_task(tm.TaskType.ASSEMBLE_BURGER, {"station": prep_station, "food_table": food_table, "customer": self, "food_type": ordered_food_type})
+		elif ordered_food_type == FOOD_FRIES and fryer_station != null:
+			tm.add_task(tm.TaskType.FRY_FRIES, {"station": fryer_station, "food_table": food_table, "customer": self, "food_type": ordered_food_type})
 
 func can_accept_delivery_task(reservation: Variant = null) -> bool:
 	if _food_received:
@@ -132,12 +144,96 @@ func get_delivery_reservation_label() -> String:
 		return str((_delivery_reservation as Object).get_instance_id())
 	return str(_delivery_reservation)
 
-func receive_food(reservation: Variant = null) -> bool:
+func receive_food(reservation: Variant = null, food_item: Node3D = null) -> bool:
 	if not can_accept_delivery_task(reservation):
 		return false
+	if food_item != null and is_instance_valid(food_item):
+		_attach_food_to_hand(food_item)
 	_food_received = true
 	clear_delivery_reservation(reservation)
 	return true
+
+func get_ordered_food_type() -> String:
+	return ordered_food_type
+
+func _choose_order_type() -> String:
+	return FOOD_BURGER if randf() > 0.5 else FOOD_FRIES
+
+func _show_order_label() -> void:
+	if _order_label == null:
+		_order_label = Label3D.new()
+		_order_label.name = "OrderLabel"
+		_order_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		_order_label.no_depth_test = true
+		_order_label.pixel_size = 0.01
+		_order_label.modulate = Color(1.0, 0.95, 0.2, 1.0)
+		customer.add_child(_order_label)
+		_order_label.position = Vector3.UP * ORDER_LABEL_HEIGHT
+	_order_label.text = "Burger" if ordered_food_type == FOOD_BURGER else "Fries"
+	_order_label.visible = true
+
+func _set_order_label_visible(value: bool) -> void:
+	if _order_label != null and is_instance_valid(_order_label):
+		_order_label.visible = value
+
+func _attach_food_to_hand(food_item: Node3D) -> void:
+	_clear_held_food()
+	var carried_global_scale := food_item.global_transform.basis.get_scale()
+	var attachment_parent := _find_skeleton(customer)
+	var attachment := Node3D.new()
+	attachment.name = "CustomerHeldFood"
+	if attachment_parent != null:
+		var bone_attachment := BoneAttachment3D.new()
+		bone_attachment.name = attachment.name
+		bone_attachment.bone_name = CUSTOMER_HAND_BONE
+		attachment_parent.add_child(bone_attachment)
+		attachment = bone_attachment
+	else:
+		customer.add_child(attachment)
+		attachment.position = Vector3(0.32, 1.0, 0.2)
+
+	if food_item.get_parent() != null:
+		food_item.reparent(attachment, false)
+	else:
+		attachment.add_child(food_item)
+	food_item.visible = true
+	food_item.position = CUSTOMER_HAND_OFFSET
+	food_item.rotation_degrees = Vector3.ZERO
+	_apply_global_scale(food_item, carried_global_scale)
+	_held_food_attachment = attachment
+	_held_food_item = food_item
+
+func _clear_held_food() -> void:
+	if _held_food_attachment != null and is_instance_valid(_held_food_attachment):
+		_held_food_attachment.queue_free()
+	elif _held_food_item != null and is_instance_valid(_held_food_item):
+		_held_food_item.queue_free()
+	_held_food_attachment = null
+	_held_food_item = null
+
+func _find_skeleton(node: Node) -> Skeleton3D:
+	if node == null:
+		return null
+	if node is Skeleton3D:
+		return node as Skeleton3D
+	for child in node.get_children():
+		var found := _find_skeleton(child)
+		if found != null:
+			return found
+	return null
+
+func _apply_global_scale(node: Node3D, target_global_scale: Vector3) -> void:
+	var current_global_scale := node.global_transform.basis.get_scale()
+	node.scale = Vector3(
+		_get_adjusted_local_scale(node.scale.x, current_global_scale.x, target_global_scale.x),
+		_get_adjusted_local_scale(node.scale.y, current_global_scale.y, target_global_scale.y),
+		_get_adjusted_local_scale(node.scale.z, current_global_scale.z, target_global_scale.z)
+	)
+
+func _get_adjusted_local_scale(local_scale: float, current_global_scale: float, target_global_scale: float) -> float:
+	if absf(current_global_scale) <= 0.0001:
+		return local_scale
+	return local_scale * target_global_scale / current_global_scale
 
 func _find_seat() -> void:
 	var level = customer.get_tree().current_scene
@@ -162,14 +258,15 @@ func _find_seat() -> void:
 func _leave() -> void:
 	state = State.LEAVING
 	clear_delivery_reservation()
+	_clear_held_food()
+	_set_order_label_visible(false)
 	if customer.has_method("stand_up"):
 		customer.call("stand_up")
 
-	var level = customer.get_tree().current_scene
-	var spawn_point = level.find_child("Door_01", true, false)
-	if spawn_point != null:
-		current_target = spawn_point
-		_move_to(spawn_point.global_position)
+	var leave_point := _get_customer_spawn_point()
+	if leave_point != null:
+		current_target = leave_point
+		_move_to(leave_point.global_position)
 	else:
 		# Fallback
 		var cm = customer.get_parent()
@@ -177,6 +274,20 @@ func _leave() -> void:
 			cm.customer_left()
 		clear_delivery_reservation()
 		customer.queue_free()
+
+func _get_customer_spawn_point() -> Node3D:
+	var cm = customer.get_parent()
+	if cm != null:
+		var configured_path: NodePath = cm.get("spawn_point_path")
+		if not configured_path.is_empty():
+			var configured := cm.get_node_or_null(configured_path) as Node3D
+			if configured != null:
+				return configured
+
+	var level = customer.get_tree().current_scene
+	if level != null:
+		return level.find_child("Door_01", true, false) as Node3D
+	return null
 
 func _move_to(target_pos: Vector3) -> void:
 	var nav_map = customer.get_world_3d().navigation_map
@@ -210,14 +321,14 @@ func _snap_customer_to_seat() -> void:
 func _mark_customer_seated() -> void:
 	state = State.SEATED_WAITING_FOR_FOOD
 
-func _find_register_approach() -> Node3D:
+func _find_register_customer_point() -> Node3D:
 	var level = customer.get_tree().current_scene
 	var seating_map = level.find_child("SeatingMap", true, false)
 	if seating_map == null: return null
-	var approaches: Array[Node3D] = []
-	_collect_register_markers(seating_map, "Approach", approaches)
-	if approaches.is_empty(): return null
-	return approaches[randi() % approaches.size()]
+	var customer_points: Array[Node3D] = []
+	_collect_register_markers(seating_map, "Opposite", customer_points)
+	if customer_points.is_empty(): return null
+	return customer_points[randi() % customer_points.size()]
 
 func _collect_register_markers(node: Node, marker_suffix: String, markers: Array[Node3D]) -> void:
 	if node is Node3D:

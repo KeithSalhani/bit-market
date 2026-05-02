@@ -3,9 +3,9 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cakg01h3k5ldk"
-path.s3tc="res://.godot/imported/psx_prop_-_restaurant_cook_0.png-4ca88daef3c391c55e2ebfb1825f23bc.s3tc.ctex"
+path.etc2="res://.godot/imported/psx_prop_-_restaurant_cook_0.png-4ca88daef3c391c55e2ebfb1825f23bc.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
@@ -15,7 +15,7 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/characters/psx/psx_prop_-_restaurant_cook_0.png"
-dest_files=["res://.godot/imported/psx_prop_-_restaurant_cook_0.png-4ca88daef3c391c55e2ebfb1825f23bc.s3tc.ctex"]
+dest_files=["res://.godot/imported/psx_prop_-_restaurant_cook_0.png-4ca88daef3c391c55e2ebfb1825f23bc.etc2.ctex"]
 
 [params]
 

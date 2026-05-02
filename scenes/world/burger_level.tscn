@@ -33119,6 +33119,9 @@ shape = SubResource("ConcavePolygonShape3D_p51t7")
 [node name="SeatingMap" type="Node3D" parent="." unique_id=1480364303]
 script = ExtResource("4_vthih")
 
+[node name="WorkerSpawnPoint" type="Marker3D" parent="." unique_id=1686686192]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.2792904, 0.4, 7.491147)
+
 [node name="DemoCamera3D" type="Camera3D" parent="." unique_id=95529586]
 transform = Transform3D(1, 0, 0, 0, 0.5533334, 0.8329599, 0, -0.8329599, 0.5533334, 4.6897583, 3.006259, 13.7276535)
 script = ExtResource("5_5y68n")
@@ -33515,6 +33518,7 @@ transform = Transform3D(1.0383521, 1.7093346, 0, 7.4717384e-08, -4.5387814e-08, 
 
 [node name="CustomerManager" type="Node" parent="." unique_id=1557274407]
 script = ExtResource("83_pfjsg")
+spawn_point_path = NodePath("../BurgerPiz2/Door_F_001")
 
 [node name="EmployeeManager" type="Node" parent="." unique_id=106836028]
 script = ExtResource("84_xt107")

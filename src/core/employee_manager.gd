@@ -3,6 +3,7 @@ extends Node
 @export var worker_scene: PackedScene = preload("res://scenes/characters/worker.tscn")
 @export var initial_workers: int = 1
 @export var spawn_spacing: float = 0.55
+@export_node_path("Node3D") var worker_spawn_point_path: NodePath = ^"../WorkerSpawnPoint"
 
 var workers: Array[CharacterBody3D] = []
 
@@ -24,18 +25,35 @@ func hire_worker() -> void:
 	worker.name = "Worker_%d" % (workers.size() + 1)
 	get_parent().add_child(worker)
 	
-	# Try to find a spawn position near a register
-	var pos = Vector3(0, 0.4, 0)
-	var seating_map = get_parent().find_child("SeatingMap", true, false)
-	if seating_map != null:
-		var registers: Array[Node3D] = []
-		_collect_markers(seating_map, "Opposite", registers)
-		if not registers.is_empty():
-			var marker = registers[0]
-			pos = marker.global_position + Vector3.RIGHT * float(workers.size()) * spawn_spacing
+	var pos = _get_worker_spawn_position(workers.size())
 	
 	worker.global_position = pos
 	workers.append(worker)
+
+func _get_worker_spawn_position(spawn_index: int) -> Vector3:
+	var spawn_point := _resolve_worker_spawn_point()
+	if spawn_point != null:
+		return spawn_point.global_position + Vector3.RIGHT * float(spawn_index) * spawn_spacing
+
+	var seating_map = get_parent().find_child("SeatingMap", true, false)
+	if seating_map != null:
+		var registers: Array[Node3D] = []
+		_collect_markers(seating_map, "Approach", registers)
+		if not registers.is_empty():
+			var marker = registers[0]
+			return marker.global_position + Vector3.RIGHT * float(spawn_index) * spawn_spacing
+
+	return Vector3(0, 0.4, 0)
+
+func _resolve_worker_spawn_point() -> Node3D:
+	var configured := get_node_or_null(worker_spawn_point_path) as Node3D
+	if configured != null:
+		return configured
+
+	var current_scene := get_tree().current_scene
+	if current_scene != null:
+		return current_scene.find_child("WorkerSpawnPoint", true, false) as Node3D
+	return null
 
 func _collect_markers(node: Node, marker_suffix: String, markers: Array[Node3D]) -> void:
 	if node is Node3D:
