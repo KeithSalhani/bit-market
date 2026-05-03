@@ -9,6 +9,8 @@ enum JobRole {
 	CATERER
 }
 
+const APPLE_PAY_SOUND := preload("res://assets/audio/applepay.mp3")
+
 class WorkerStats:
 	var movement_speed_pct := 0
 	var order_speed_pct := 0
@@ -168,6 +170,7 @@ func _execute_process_order(task: Object) -> void:
 		_set_task_status(task, "Taking order", "Customer is ordering")
 		await get_tree().create_timer(_scaled_duration(1.0, _get_effective_speed_pct("order"))).timeout
 		customer.take_order(_worker)
+		_play_register_order_sound(register_marker)
 
 func _execute_cook_meat(task: Object) -> void:
 	_set_task_status(task, "Cooking", "Claiming grill")
@@ -213,6 +216,23 @@ func _execute_cook_meat(task: Object) -> void:
 				prep.call("stock_cooked_meat", cooked_count)
 	if reserved_grill and grill.has_method("release_reservation"):
 		grill.call("release_reservation", _worker)
+
+func _play_register_order_sound(register_marker: Node3D) -> void:
+	if register_marker == null or not is_instance_valid(register_marker):
+		return
+
+	var audio_parent := register_marker.get_parent() as Node3D
+	if audio_parent == null:
+		audio_parent = register_marker
+
+	var player := AudioStreamPlayer3D.new()
+	player.name = "ApplePaySound"
+	player.stream = APPLE_PAY_SOUND
+	player.max_distance = 8.0
+	player.finished.connect(player.queue_free)
+	audio_parent.add_child(player)
+	player.global_position = audio_parent.global_position
+	player.play()
 
 func _execute_fry_fries(task: Object) -> void:
 	_set_task_status(task, "Frying", "Claiming fryer")

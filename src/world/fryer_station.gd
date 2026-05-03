@@ -4,6 +4,7 @@ extends Node
 @export var basket_lower_offset := 0.18
 @export var fries_scene: PackedScene = preload("res://scenes/props/food/fries.tscn")
 @export var bagged_fries_scene: PackedScene = preload("res://scenes/props/food/fires_bagged.tscn")
+@export var fryer_sound_path: NodePath
 @export var oil_particles_enabled := true
 @export var oil_color := Color(1.0, 0.78, 0.08, 0.42)
 @export var raw_fries_scale := Vector3(0.35, 0.35, 0.35)
@@ -80,19 +81,21 @@ func fry_fries(worker: Node, reach_controller: Node = null, duration_multiplier:
 	_reserved_worker = null
 	_set_oil_visible(true)
 	_spawn_raw_fries()
-	_set_particles_emitting(oil_particles_enabled)
 
 	for index in range(_baskets.size()):
 		await reach_controller.call("reach_to", _handle_positions[index].global_position)
 		await _move_basket(index, _basket_start_positions[index] + Vector3.DOWN * basket_lower_offset)
 
+	_set_particles_emitting(oil_particles_enabled)
+	_set_fryer_sound_playing(true)
 	await get_tree().create_timer(cook_seconds * maxf(duration_multiplier, 0.05)).timeout
+	_set_fryer_sound_playing(false)
+	_set_particles_emitting(false)
 
 	for index in range(_baskets.size()):
 		await reach_controller.call("reach_to", _handle_positions[index].global_position)
 		await _move_basket(index, _basket_start_positions[index])
 
-	_set_particles_emitting(false)
 	_clear_raw_fries()
 	_set_oil_visible(false)
 	outputs = _create_bagged_fries_outputs()
@@ -209,8 +212,8 @@ func _create_oil_particles() -> void:
 		return
 	var particles := GPUParticles3D.new()
 	particles.name = "OilBubbles"
-	particles.amount = 18
-	particles.lifetime = 0.7
+	particles.amount = 42
+	particles.lifetime = 0.85
 	particles.one_shot = false
 	particles.emitting = false
 	particles.draw_pass_1 = _make_bubble_mesh()
@@ -218,19 +221,88 @@ func _create_oil_particles() -> void:
 	_oil.add_child(particles)
 	_oil_particles.append(particles)
 
+	var sizzle := GPUParticles3D.new()
+	sizzle.name = "OilSizzle"
+	sizzle.amount = 30
+	sizzle.lifetime = 0.45
+	sizzle.one_shot = false
+	sizzle.emitting = false
+	sizzle.draw_pass_1 = _make_sizzle_mesh()
+	sizzle.process_material = _make_sizzle_material()
+	_oil.add_child(sizzle)
+	_oil_particles.append(sizzle)
+
 func _set_particles_emitting(value: bool) -> void:
 	for particles in _oil_particles:
 		if particles != null and is_instance_valid(particles):
 			particles.emitting = value
 
+func _set_fryer_sound_playing(value: bool) -> void:
+	var fryer_sound := _get_fryer_sound()
+	if fryer_sound == null:
+		return
+	if value:
+		if fryer_sound.has_method("play") and not bool(fryer_sound.get("playing")):
+			fryer_sound.call("play")
+	elif fryer_sound.has_method("stop"):
+		fryer_sound.call("stop")
+
+func _get_fryer_sound() -> Node:
+	if not fryer_sound_path.is_empty():
+		var configured := get_node_or_null(fryer_sound_path)
+		if configured != null:
+			return configured
+
+	var scene_root := get_tree().current_scene
+	if scene_root == null:
+		return null
+	for sound_name in _get_fryer_sound_names():
+		var direct := scene_root.get_node_or_null(NodePath(sound_name))
+		if direct != null:
+			return direct
+		var found := scene_root.find_child(sound_name, true, false)
+		if found != null:
+			return found
+	return null
+
+func _get_fryer_sound_names() -> Array[String]:
+	var names: Array[String] = []
+	var normalized_name := String(name).to_lower()
+	if normalized_name.ends_with("_1") or normalized_name.ends_with("-1"):
+		names.append("fryer-sound-1")
+		names.append("FryerSound1")
+		names.append("fryer_sound_1")
+	elif normalized_name.ends_with("_2") or normalized_name.ends_with("-2"):
+		names.append("fryer-sound-2")
+		names.append("FryerSound2")
+		names.append("fryer_sound_2")
+	names.append("fryer-sound-1")
+	names.append("fryer-sound-2")
+	return names
+
 func _make_bubble_mesh() -> Mesh:
 	var mesh := SphereMesh.new()
-	mesh.radius = 0.025
-	mesh.height = 0.05
+	mesh.radius = 0.018
+	mesh.height = 0.036
 	mesh.radial_segments = 8
 	mesh.rings = 4
 	var material := StandardMaterial3D.new()
-	material.albedo_color = Color(1.0, 0.78, 0.28, 0.5)
+	material.albedo_color = Color(1.0, 0.86, 0.38, 0.62)
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mesh.material = material
+	return mesh
+
+func _make_sizzle_mesh() -> Mesh:
+	var mesh := SphereMesh.new()
+	mesh.radius = 0.012
+	mesh.height = 0.024
+	mesh.radial_segments = 6
+	mesh.rings = 3
+	var material := StandardMaterial3D.new()
+	material.albedo_color = Color(1.0, 0.94, 0.62, 0.72)
+	material.emission_enabled = true
+	material.emission = Color(1.0, 0.68, 0.22, 1.0)
+	material.emission_energy_multiplier = 0.45
 	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	mesh.material = material
 	return mesh
@@ -238,14 +310,27 @@ func _make_bubble_mesh() -> Mesh:
 func _make_bubble_material() -> ParticleProcessMaterial:
 	var material := ParticleProcessMaterial.new()
 	material.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
-	material.emission_box_extents = Vector3(0.32, 0.02, 0.18)
+	material.emission_box_extents = Vector3(0.36, 0.015, 0.22)
 	material.direction = Vector3.UP
-	material.spread = 8.0
-	material.gravity = Vector3(0.0, 0.05, 0.0)
-	material.initial_velocity_min = 0.04
-	material.initial_velocity_max = 0.16
-	material.scale_min = 0.25
-	material.scale_max = 0.7
+	material.spread = 16.0
+	material.gravity = Vector3(0.0, 0.04, 0.0)
+	material.initial_velocity_min = 0.06
+	material.initial_velocity_max = 0.22
+	material.scale_min = 0.35
+	material.scale_max = 0.85
+	return material
+
+func _make_sizzle_material() -> ParticleProcessMaterial:
+	var material := ParticleProcessMaterial.new()
+	material.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	material.emission_box_extents = Vector3(0.34, 0.012, 0.2)
+	material.direction = Vector3.UP
+	material.spread = 28.0
+	material.gravity = Vector3(0.0, 0.12, 0.0)
+	material.initial_velocity_min = 0.18
+	material.initial_velocity_max = 0.42
+	material.scale_min = 0.2
+	material.scale_max = 0.6
 	return material
 
 func _find_named_descendant(node: Node, normalized_name: String) -> Node:

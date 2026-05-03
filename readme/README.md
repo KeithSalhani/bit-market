@@ -8,11 +8,13 @@ Class Group: TU984
 
 # Description
 
-Bit Market is a 3D restaurant management and automation simulation built in Godot 4.6. The project is set inside a low-poly/PSX-style burger restaurant where customers arrive, queue at cash registers, place orders, sit down, wait for food, eat, pay, and leave.
+Bit Market is a 3D restaurant management and automation simulation built in Godot 4.6. The project is set inside a low-poly/PSX-style burger restaurant where customers arrive, queue at cash registers, place orders and pay, sit down, wait for food, eat, and leave.
 
 The main gameplay focus is the worker-driven restaurant pipeline. Workers can be hired and assigned roles such as cashier, meat griller, burger prepper, fries fryer, and caterer. Each worker pulls tasks from a shared task manager and uses navigation, station reservations, hand IK, food props, and kitchen station logic to complete the customer order flow.
 
-The simulation includes burger assembly, meat grilling, fries frying, register queues, seat assignment, food storage, delivery, eating animations, money tracking, day/time progression, and a HUD/debug interface for observing the running system.
+The simulation also includes a physical boss manager NPC. The boss walks around the restaurant, inspects nearby zones, remembers partial observations, interviews workers, and can use a Gemini LLM to choose management plans. The plans are validated by Godot before they can change worker roles, queue food backlog, hire or fire staff, change prices, or show boss speech.
+
+The simulation includes burger assembly, meat grilling, fries frying, register queues, seat assignment, food storage, delivery, eating animations, menu pricing, worker performance stats, money tracking, slower day/time progression, and HUD/debug interfaces for observing the running system.
 
 ## Video
 
@@ -67,6 +69,32 @@ res://scenes/world/burger_level.tscn
 
 The main scene is already configured in `project.godot`.
 
+## LLM Configuration
+
+The boss manager works without an API key, but in that mode it only patrols, observes, logs, applies local execution helpers, and waits for a valid LLM configuration.
+
+To enable Gemini:
+
+1. Copy `config/llm.example.json` to `config/llm.local.json`.
+2. Set `enabled` to `true`.
+3. Replace `YOUR_GEMINI_API_KEY` with a real Gemini API key.
+4. Optionally change `model`, for example to another Gemini Flash or Flash-Lite model.
+
+Example local config:
+
+```json
+{
+  "provider": "gemini",
+  "model": "gemini-flash-latest",
+  "api_key": "YOUR_GEMINI_API_KEY",
+  "timeout_seconds": 12,
+  "enabled": true,
+  "debug_raw_json": false
+}
+```
+
+`config/llm.local.json` is ignored by Git and should never be committed. The boss writes debug events to `user://boss_manager_debug.jsonl`, which resolves to the Godot user-data folder for the project.
+
 ## Controls
 
 - `Open Restaurant`: starts the day and begins customer spawning.
@@ -74,6 +102,7 @@ The main scene is already configured in `project.godot`.
 - `Hire Worker ($100)`: hires another worker. The first worker is free.
 - `Spawn Customer`: manually spawns a customer for testing.
 - `Workers`: opens the worker activity panel.
+- `Boss`: opens the boss manager panel with overview, LLM, worker metrics, restaurant metrics, validation, and raw event views.
 - Worker role dropdowns: assign workers to Auto, Cashier, Meat Griller, Burger Prepper, Fries Fryer, or Caterer.
 
 Free camera controls:
@@ -89,15 +118,21 @@ Free camera controls:
 
 The restaurant simulation is built around a set of managers and station scripts.
 
-`RestaurantManager` tracks the restaurant state: money, day number, time of day, and whether the restaurant is open. Customers pay `$15.50` after they finish eating.
+`RestaurantManager` tracks the restaurant state: money, day number, time of day, whether the restaurant is open, menu prices, and service metrics. Customers pay the current menu price immediately when the cashier takes their order. The manager also records orders placed, orders delivered, orders per in-game hour, and average order-to-delivery time.
 
-`CustomerManager` spawns customers, randomises their visual character, assigns them to available register slots, and manages register queue positions when all registers are occupied.
+`CustomerManager` spawns customers, randomises their visual character, assigns them to available register slots, and manages register queue positions when all registers are occupied. If workers are assigned to specific registers, waiting customers are rebalanced toward staffed registers instead of standing at an unused register.
 
-`CustomerAI` controls the full customer lifecycle. Customers enter, queue for a register, request an order task, show their selected order, find a seat, wait for delivery, receive food, eat, pay, and leave.
+`CustomerAI` controls the full customer lifecycle. Customers enter, queue for a register, request an order task, pay for their selected order, find a seat, wait for delivery, receive food, eat, and leave.
 
-`TaskManager` is the central task queue. It creates and assigns tasks for processing orders, cooking meat, frying fries, assembling burgers, and delivering food. It also checks worker roles, station availability, station reservations, food availability, and delivery reservations.
+`TaskManager` is the central task queue. It creates and assigns tasks for processing orders, cooking meat, frying fries, assembling burgers, and delivering food. It also checks worker roles, station availability, station reservations, food availability, and delivery reservations. It exposes task-change signals so UI displays and boss metrics can react to active and pending work.
 
-`WorkerAI` runs on each worker NPC. Workers request tasks, travel to the correct station, snap into workstation positions, perform reach/IK interactions, carry food, stock the food table, and deliver the correct food type to customers.
+`WorkerAI` runs on each worker NPC. Workers request tasks, travel to the correct station, snap into workstation positions, perform reach/IK interactions, carry food, stock the food table, and deliver the correct food type to customers. Workers also have generated stats, including speed multipliers and delivery capacity, and record observed performance such as orders per minute, burgers per minute, meat batches per minute, fries per minute, deliveries per minute, average task durations, failures, and observed carry count.
+
+`BossAI` runs on the boss NPC. It patrols registers, grill, fryer, prep, food table, dining room, and workers. Each stop adds summarized observations to `BossKnowledge`, with timestamps, confidence, and stale/unknown labels. When the restaurant opens, the boss interviews the starting crew to learn delivery capacity before requesting an opening management plan.
+
+`GeminiLLMClient` is a direct Godot HTTP client for Gemini. It loads `config/llm.local.json`, sends prompts to the Gemini `generateContent` endpoint, requests strict JSON output, and reports failures without printing the API key.
+
+`HUD` includes the Boss Manager panel. The panel shows the boss destination, LLM availability, next plan timing, stale zones, overview details, raw prompt/response, worker metrics, restaurant metrics, validation results, and a clickable event list for debugging each LLM and local execution action.
 
 Kitchen stations provide the physical food production logic:
 
@@ -106,7 +141,40 @@ Kitchen stations provide the physical food production logic:
 - `FryerStation`: lowers baskets, shows oil, spawns raw fries, emits oil bubble particles, and creates bagged fries.
 - `FoodTableStation`: stores prepared food by type and exposes food lookup for delivery tasks.
 
-Movement and interaction use Godot navigation, station markers, seat/register markers, and `SkeletonIK3D`-based reaching. Workers and customers use separate movement scripts so the simulation can run autonomously once the restaurant is open.
+Movement and interaction use Godot navigation, station markers, seat/register markers, and `SkeletonIK3D`-based reaching. Workers, customers, and the boss use separate movement scripts so the simulation can run autonomously once the restaurant is open.
+
+## Boss Manager And LLM
+
+The boss manager is intentionally not given raw omniscient truth as its main decision context. The prompt is built from boss memory, stale/unknown labels, explained metrics, legal action options, recent actions, and restaurant state. Worker hidden stats are not dumped directly into the prompt; the boss learns worker capability through observation and opening interviews.
+
+The LLM returns one `manager_plan` JSON object:
+
+```json
+{
+  "action": "manager_plan",
+  "reason": "short reason",
+  "staffing_plan": [
+    {"worker": "Worker_1", "role": "cashier", "reason": "register pressure"}
+  ],
+  "stock_targets": {"burger": 2, "fries": 2, "meat": 8},
+  "hire_worker": false,
+  "fire_worker": "",
+  "say": "short speech"
+}
+```
+
+Godot validates every part of the plan before applying it:
+
+- worker names must exist.
+- roles must be one of `auto`, `cashier`, `meat_griller`, `burger_prepper`, `fries_fryer`, or `caterer`.
+- busy workers receive pending role changes instead of being interrupted.
+- hiring requires enough money and a staffing-pressure reason.
+- firing cannot remove the last worker and requires observed underperformance or overstaffing.
+- price changes are bounded and have a cooldown.
+- stock targets are capped to small safe backlogs.
+- when cooked meat is overstocked, assigning more meat grilling is rejected so the LLM can move that worker to burger prep or another bottleneck.
+
+The local execution tick is not a competing manager. It applies accepted pending role changes, keeps assigned grillers working toward meat backlog under the overstock threshold, and queues delivery tasks when ready food exists. If Gemini is disabled, fails, times out, or returns invalid JSON, the boss keeps walking and observing but does not apply a new LLM management plan.
 
 ## RK/IK Worker Interaction
 
@@ -143,10 +211,10 @@ func get_next_task(worker: Node) -> Task:
 	while i < pending_tasks.size():
 		var task = pending_tasks[i]
 		if _can_worker_do_task(role, task.type):
+			_assign_task_station_for_worker(worker, role, task)
 			if not _task_matches_worker_station(worker, role, task):
 				i += 1
 				continue
-			_assign_task_station_for_worker(worker, role, task)
 			if _station_has_active_task(task):
 				i += 1
 				continue
@@ -163,7 +231,7 @@ func get_next_task(worker: Node) -> Task:
 	return null
 ```
 
-This means a cashier only takes register tasks, a meat griller only takes grill tasks, and Auto workers only take tasks that are not already reserved for a specialist worker.
+This means a cashier only takes register tasks, a meat griller only takes grill tasks, and Auto workers can fill gaps while respecting specialist station ownership. The task manager also reassigns burger and fries production tasks to the station owned by the compatible worker, which lets multiple prep shelves work correctly.
 
 ### Customer Ordering Flow
 
@@ -173,11 +241,16 @@ Customers request a register slot, wait until they reach their assigned register
 func take_order(worker: Node) -> void:
 	if _has_ordered: return
 	_has_ordered = true
+	_ordered_at_seconds = Time.get_ticks_msec() / 1000.0
 	ordered_food_type = _choose_order_type()
 	_show_order_label()
+	_collect_order_payment()
+	var rm := get_node_or_null("/root/RestaurantManager")
+	if rm != null and rm.has_method("record_order_placed"):
+		rm.call("record_order_placed")
 	
 	var level = customer.get_tree().current_scene
-	var prep_station = level.find_child("BurgerPrepStation", true, false)
+	var prep_station = _choose_burger_prep_station(level)
 	var fryer_station = level.find_child("Fryer_1", true, false)
 	var food_table = level.find_child("FoodTable", true, false)
 	
@@ -218,7 +291,7 @@ func _start_task_loop() -> void:
 
 ### Burger Assembly Dependency
 
-The burger prep station requires cooked meat. If no cooked meat is available, the task manager requests a cook-meat task for the linked grill station instead of letting the burger task fail permanently.
+The burger prep station requires cooked meat. Cooked meat stock is shared across prep stations, so a second prep shelf can use the same meat supply. If no cooked meat is available, the task manager requests a cook-meat task for the linked grill station instead of letting the burger task fail permanently.
 
 ```gdscript
 func request_cooked_meat_for_prep(prep_station: Node) -> void:
@@ -241,7 +314,7 @@ func request_cooked_meat_for_prep(prep_station: Node) -> void:
 The fryer station animates baskets down into the oil, waits for the cook timer, then raises the baskets and creates bagged fries output.
 
 ```gdscript
-func fry_fries(worker: Node, reach_controller: Node = null) -> Array[Node3D]:
+func fry_fries(worker: Node, reach_controller: Node = null, duration_multiplier: float = 1.0) -> Array[Node3D]:
 	var outputs: Array[Node3D] = []
 	if _is_busy and _reserved_worker != worker:
 		return outputs
@@ -256,7 +329,7 @@ func fry_fries(worker: Node, reach_controller: Node = null) -> Array[Node3D]:
 		await reach_controller.call("reach_to", _handle_positions[index].global_position)
 		await _move_basket(index, _basket_start_positions[index] + Vector3.DOWN * basket_lower_offset)
 
-	await get_tree().create_timer(cook_seconds).timeout
+	await get_tree().create_timer(cook_seconds * maxf(duration_multiplier, 0.05)).timeout
 
 	for index in range(_baskets.size()):
 		await reach_controller.call("reach_to", _handle_positions[index].global_position)
@@ -348,18 +421,44 @@ else:
 	await reach_controller.call("reach_to", place_position)
 ```
 
-### Payment After Eating
+### Payment At Order Time
 
-Money is collected only after the customer has received food, sat down, eaten, and finished their eating timer.
+Money is collected when the cashier takes the customer's order at the register. The customer still sits down, waits for delivery, eats, and leaves, but no additional money is collected at the end of the visit.
 
 ```gdscript
-elif state == State.EATING:
-	_wait_timer -= delta
-	if _wait_timer <= 0:
-		var rm = get_node("/root/RestaurantManager")
-		rm.add_money(15.50)
-		_leave()
+func take_order(worker: Node) -> void:
+	if _has_ordered: return
+	_has_ordered = true
+	ordered_food_type = _choose_order_type()
+	_collect_order_payment()
 ```
+
+### Boss Manager Plan Validation
+
+The LLM can ask for staffing changes, stock targets, hiring, firing, prices, and speech, but `BossAI` validates each request locally before anything changes in the restaurant.
+
+```gdscript
+func _apply_manager_plan(plan: Dictionary) -> Dictionary:
+	_last_validation_results.clear()
+	var applied := PackedStringArray()
+	var staffing: Variant = plan.get("staffing_plan", [])
+	if staffing is Array:
+		for item in staffing as Array:
+			if not (item is Dictionary):
+				_add_validation_result(false, "staffing_plan", "Ignored malformed staffing item.", item)
+				continue
+			var result := _apply_set_worker_role(item as Dictionary)
+			_add_validation_result(
+				bool(result.get("ok", false)),
+				"set_worker_role",
+				String(result.get("message", result.get("reason", ""))),
+				item
+			)
+			if bool(result.get("ok", false)):
+				applied.append(String(result.get("message", "")))
+```
+
+This keeps the LLM as the high-level manager while the game code remains responsible for legal actions, cooldowns, worker existence checks, staffing limits, stock caps, and safety rules.
 
 # List Of Classes/Assets
 
@@ -371,6 +470,9 @@ elif state == State.EATING:
 | `src/core/task_manager.gd` | Self written |
 | `src/core/worker_ai.gd` | Self written |
 | `src/core/employee_manager.gd` | Self written |
+| `src/core/boss_ai.gd` | Self written |
+| `src/core/boss_knowledge.gd` | Self written |
+| `src/core/gemini_llm_client.gd` | Self written |
 | `src/core/hud.gd` | Self written |
 | `src/core/debug_menu.gd` | Self written |
 | `src/world/grill_station.gd` | Self written |
@@ -388,8 +490,11 @@ elif state == State.EATING:
 | `scenes/world/burger_level.tscn` | Self assembled Godot scene using imported assets |
 | `scenes/characters/worker.tscn` | Self assembled Godot scene using imported character asset |
 | `scenes/characters/worker_npc.tscn` | Self assembled Godot scene using imported character asset |
+| `scenes/characters/boss.tscn` | Self assembled Godot scene using imported character asset |
+| `scenes/characters/boss_npc.tscn` | Self assembled Godot scene using imported character asset and boss AI |
 | `scenes/characters/character_npc.tscn` | Modified existing NPC scene |
 | `scenes/ui/hud.tscn` | Self written/assembled |
+| `config/llm.example.json` | Self written example config with no secrets |
 | `scenes/props/food/*.tscn` | Self assembled Godot scenes using imported food assets |
 | `scenes/props/misc/crt_tv.tscn` | Self assembled Godot scene using imported CRT asset |
 | `assets/map/BurgerPiz*` | BurgerPiz map by PlomadillaInc |
@@ -407,9 +512,11 @@ elif state == State.EATING:
 
 # Personal Contribution
 
-I built the simulation logic, scene integration, and gameplay systems for the restaurant prototype. My work focused on making the restaurant operate as a complete chain of autonomous events rather than a static scene. This included customer spawning and queues, the task manager, worker role assignment, worker AI, order taking, kitchen stations, burger assembly, fries frying, meat grilling, food storage, delivery, customer seating/eating, and payment collection.
+I built the simulation logic, scene integration, and gameplay systems for the restaurant prototype. My work focused on making the restaurant operate as a complete chain of autonomous events rather than a static scene. This included customer spawning and queues, the task manager, worker role assignment, worker AI, order taking, kitchen stations, burger assembly, fries frying, meat grilling, food storage, delivery, customer seating/eating, payment collection, menu pricing, and boss manager automation.
 
 The part I am most proud of is the worker task pipeline. A customer order can trigger several dependent systems: a cashier processes the order, a burger prepper may need cooked meat, the task manager can request grill work, the worker carries the completed food to storage, and a caterer then delivers the correct item to the customer. Each step has to coordinate with station availability, role assignment, navigation, animation, and food state.
+
+The boss manager was the largest AI systems addition. I built it so the boss is a physical character with limited observations instead of an all-knowing script. The boss walks between inspection zones, records stale and known facts, tracks worker performance, questions workers about carry capacity, sends a structured prompt to Gemini, and then validates the returned plan before applying role changes, stock targets, hiring, firing, pricing, or speech.
 
 I also learned a lot about building larger Godot systems from smaller reusable nodes. The project uses Godot scenes for physical objects and station markers, while scripts expose simple methods such as `fry_fries`, `cook_meat`, `store_food_item`, and `receive_food`. This made it easier to connect AI behavior to the world without hardcoding every interaction.
 
@@ -419,6 +526,7 @@ I also learned a lot about building larger Godot systems from smaller reusable n
 - Godot NavigationServer3D Documentation: https://docs.godotengine.org/en/stable/classes/class_navigationserver3d.html
 - Godot SkeletonIK3D Documentation: https://docs.godotengine.org/en/stable/classes/class_skeletonik3d.html
 - Godot Tween Documentation: https://docs.godotengine.org/en/stable/classes/class_tween.html
+- Google Gemini API Documentation: https://ai.google.dev/gemini-api/docs
 - README submission template reference: https://github.com/skooter500/miniature-rotary-phone/tree/main/readme
 - Carla Sitting Idle: https://sketchfab.com/3d-models/carla-sitting-idle-9734fc2bb56e4ebeb90eb6929ba84d64
 - Man Sitting: https://sketchfab.com/3d-models/man-sitting-b46bceb164b74346897c7a62691a1d5c
