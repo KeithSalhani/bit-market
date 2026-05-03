@@ -1,7 +1,7 @@
 extends Node
 
 @export var worker_scene: PackedScene = preload("res://scenes/characters/worker.tscn")
-@export var initial_workers: int = 1
+@export var initial_workers: int = 4
 @export var spawn_spacing: float = 0.55
 @export_node_path("Node3D") var worker_spawn_point_path: NodePath = ^"../WorkerSpawnPoint"
 
@@ -12,12 +12,15 @@ func _ready() -> void:
 
 func _spawn_initial_workers() -> void:
 	for i in range(initial_workers):
-		hire_worker()
+		_spawn_worker(false)
 
 func hire_worker() -> void:
+	_spawn_worker(true)
+
+func _spawn_worker(charge_money: bool) -> void:
 	var rm = get_node("/root/RestaurantManager")
 	var cost = 100.0 # simple cost
-	if workers.size() > 0: # First worker is free
+	if charge_money and workers.size() > 0: # First worker is free
 		if not rm.spend_money(cost):
 			return
 			

@@ -27423,6 +27423,7 @@ mesh = SubResource("ArrayMesh_lbsu0")
 [node name="StaticBody3D" type="StaticBody3D" parent="BurgerPiz2/Background" unique_id=1590481750]
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="BurgerPiz2/Background/StaticBody3D" unique_id=30004935]
+transform = Transform3D(-0.17203175, 0.9850915, -0.00026938997, -0.98509073, -0.17203194, -0.0011889866, -0.0012176041, 6.0830036e-05, 0.9999994, 0, 0, 0)
 shape = SubResource("ConcavePolygonShape3D_p36qv")
 
 [node name="Building" type="MeshInstance3D" parent="BurgerPiz2" unique_id=1510163365]

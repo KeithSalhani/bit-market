@@ -7,7 +7,7 @@ signal open_state_changed(is_open: bool)
 signal menu_prices_changed()
 
 @export var starting_money: float = 1000.0
-@export var day_duration_seconds: float = 120.0
+@export var day_duration_seconds: float = 360.0
 @export var start_time_of_day: float = 8.0 # 8:00 AM
 @export var end_time_of_day: float = 22.0 # 10:00 PM
 @export var burger_price: float = 5.0:
@@ -28,6 +28,9 @@ var time_of_day: float = 0.0 # Range: start_time_of_day to end_time_of_day
 var current_day: int = 1
 var is_open: bool = false
 var _time_accumulator: float = 0.0
+var _orders_placed_this_day := 0
+var _orders_delivered_this_day := 0
+var _total_order_to_delivery_seconds := 0.0
 
 func _ready() -> void:
 	money = starting_money
@@ -57,6 +60,9 @@ func open_restaurant() -> void:
 	is_open = true
 	time_of_day = start_time_of_day
 	_time_accumulator = 0.0
+	_orders_placed_this_day = 0
+	_orders_delivered_this_day = 0
+	_total_order_to_delivery_seconds = 0.0
 	emit_signal("open_state_changed", is_open)
 	emit_signal("time_changed", time_of_day)
 
@@ -109,6 +115,24 @@ func get_menu_items() -> Array[Dictionary]:
 		{"id": "fries", "label": "FRIES", "price": fries_price},
 		{"id": "soda", "label": "SODA", "price": soda_price},
 	]
+
+func record_order_placed() -> void:
+	_orders_placed_this_day += 1
+
+func record_order_delivered(order_to_delivery_seconds: float) -> void:
+	_orders_delivered_this_day += 1
+	_total_order_to_delivery_seconds += maxf(0.0, order_to_delivery_seconds)
+
+func get_service_metrics() -> Dictionary:
+	var elapsed_real_seconds := maxf(1.0, _time_accumulator)
+	var elapsed_game_hours := maxf(0.01, time_of_day - start_time_of_day)
+	return {
+		"orders_placed": _orders_placed_this_day,
+		"orders_delivered": _orders_delivered_this_day,
+		"orders_per_real_minute": float(_orders_placed_this_day) / (elapsed_real_seconds / 60.0),
+		"orders_per_ingame_hour": float(_orders_placed_this_day) / elapsed_game_hours,
+		"avg_order_to_delivery_seconds": _total_order_to_delivery_seconds / float(maxi(1, _orders_delivered_this_day)),
+	}
 
 func get_time_string() -> String:
 	var hours = floori(time_of_day)

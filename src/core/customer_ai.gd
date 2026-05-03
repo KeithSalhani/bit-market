@@ -27,6 +27,7 @@ var _held_food_item: Node3D = null
 var _assigned_register_marker: Node3D = null
 var _register_task_requested := false
 var _eating_controller: Node = null
+var _ordered_at_seconds := 0.0
 
 const FOOD_BURGER := "burger"
 const FOOD_FRIES := "fries"
@@ -133,8 +134,12 @@ func _is_at_target() -> bool:
 func take_order(worker: Node) -> void:
 	if _has_ordered: return
 	_has_ordered = true
+	_ordered_at_seconds = Time.get_ticks_msec() / 1000.0
 	ordered_food_type = _choose_order_type()
 	_show_order_label()
+	var rm := get_node_or_null("/root/RestaurantManager")
+	if rm != null and rm.has_method("record_order_placed"):
+		rm.call("record_order_placed")
 	
 	var level = customer.get_tree().current_scene
 	var prep_station = _choose_burger_prep_station(level)
@@ -230,6 +235,9 @@ func receive_food(reservation: Variant = null, food_item: Node3D = null) -> bool
 	if food_item != null and is_instance_valid(food_item):
 		_attach_food_to_hand(food_item)
 	_food_received = true
+	var rm := get_node_or_null("/root/RestaurantManager")
+	if rm != null and rm.has_method("record_order_delivered") and _ordered_at_seconds > 0.0:
+		rm.call("record_order_delivered", Time.get_ticks_msec() / 1000.0 - _ordered_at_seconds)
 	clear_delivery_reservation(reservation)
 	if state == State.EATING:
 		_start_eating_motion()

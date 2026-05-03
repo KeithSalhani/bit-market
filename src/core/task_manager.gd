@@ -50,10 +50,10 @@ func get_next_task(worker: Node) -> Task:
 	while i < pending_tasks.size():
 		var task = pending_tasks[i]
 		if _can_worker_do_task(role, task.type):
+			_assign_task_station_for_worker(worker, role, task)
 			if not _task_matches_worker_station(worker, role, task):
 				i += 1
 				continue
-			_assign_task_station_for_worker(worker, role, task)
 			if _station_has_active_task(task):
 				i += 1
 				continue
@@ -189,7 +189,7 @@ func _task_matches_worker_station(worker: Node, role: int, task: Task) -> bool:
 	return _stations_match(assigned_station, task_station)
 
 func _assign_task_station_for_worker(worker: Node, role: int, task: Task) -> void:
-	if task.type != TaskType.FRY_FRIES:
+	if task.type != TaskType.FRY_FRIES and task.type != TaskType.ASSEMBLE_BURGER:
 		return
 	var assigned_station := get_assigned_station_for_worker(worker, role)
 	if assigned_station != null:
@@ -200,11 +200,11 @@ func _assign_task_station_for_worker(worker: Node, role: int, task: Task) -> voi
 		if (
 			current_station != null
 			and is_instance_valid(current_station)
-			and not _station_is_owned_by_role(current_station, ROLE_FRIES_FRYER)
+			and not _station_is_owned_by_role(current_station, _get_role_for_task_type(task.type))
 			and (not current_station.has_method("is_available") or bool(current_station.call("is_available")))
 		):
 			return
-		var open_station := _get_first_unowned_available_station(ROLE_FRIES_FRYER)
+		var open_station := _get_first_unowned_available_station(_get_role_for_task_type(task.type))
 		if open_station != null:
 			task.args["station"] = open_station
 

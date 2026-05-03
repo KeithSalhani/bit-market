@@ -58,9 +58,31 @@ var _base_move_speed := 3.4
 var _current_task: Object = null
 var _is_executing := false
 var _last_idle_station: Node = null
+var _pending_job_role := -1
+var _pending_job_role_reason := ""
+var _shift_started_at := 0.0
+var _task_started_at := 0.0
+var _last_delivery_batch_count := 1
+var _performance_counts := {
+	"orders": 0,
+	"meat_batches": 0,
+	"fries_batches": 0,
+	"burgers": 0,
+	"deliveries": 0,
+	"failed": 0,
+}
+var _performance_seconds := {
+	"orders": 0.0,
+	"meat_batches": 0.0,
+	"fries_batches": 0.0,
+	"burgers": 0.0,
+	"deliveries": 0.0,
+}
+var _observed_max_carry := 1
 
 func _ready() -> void:
 	_worker = get_parent() as CharacterBody3D
+	_shift_started_at = Time.get_ticks_msec() / 1000.0
 	if _worker != null:
 		_base_move_speed = float(_worker.get("move_speed"))
 	if stats == null:
@@ -86,11 +108,15 @@ func _start_task_loop() -> void:
 			if task != null:
 				_is_executing = true
 				_current_task = task
+				_task_started_at = Time.get_ticks_msec() / 1000.0
+				_last_delivery_batch_count = 1
 				_set_task_status(task, "Starting", "Task assigned")
 				await _execute_task(task)
+				_record_task_performance(task, Time.get_ticks_msec() / 1000.0 - _task_started_at)
 				task_manager.complete_task(task)
 				_current_task = null
 				_is_executing = false
+				_apply_pending_job_role_if_any()
 				_set_idle_status()
 				_move_to_assigned_idle_station()
 			else:
@@ -115,10 +141,17 @@ func _execute_task(task: Object) -> void:
 
 func _execute_process_order(task: Object) -> void:
 	_set_task_status(task, "Taking order", "Walking to register")
-	var customer = task.args.get("customer") as Node
-	var register_marker = task.args.get("register_marker") as Node3D
-	if not is_instance_valid(customer) or not is_instance_valid(register_marker): return
-	
+	var customer_value: Variant = task.args.get("customer")
+	var register_marker_value: Variant = task.args.get("register_marker")
+	if customer_value == null or not is_instance_valid(customer_value):
+		get_node("/root/TaskManager").fail_task(task)
+		return
+	if register_marker_value == null or not is_instance_valid(register_marker_value) or not (register_marker_value is Node3D):
+		get_node("/root/TaskManager").fail_task(task)
+		return
+	var customer := customer_value as Node
+	var register_marker := register_marker_value as Node3D
+		
 	var register = register_marker.get_parent()
 	var stand_point = register_marker
 	var register_look_target: Vector3 = register_marker.global_position
@@ -360,13 +393,20 @@ func _execute_assemble_burger(task: Object) -> void:
 func _execute_deliver_food(task: Object) -> void:
 	_set_task_status(task, "Delivering", "Validating delivery")
 	var tm = get_node("/root/TaskManager")
-	var food_table = task.args.get("food_table") as Node
-	var customer = task.args.get("customer") as Node
-	var seat = task.args.get("seat") as Node3D
+	var food_table_value: Variant = task.args.get("food_table")
+	var customer_value: Variant = task.args.get("customer")
+	var seat_value: Variant = task.args.get("seat")
 	var food_type := String(task.args.get("food_type", ""))
-	if food_table == null or customer == null or seat == null:
+	if (
+		food_table_value == null or not is_instance_valid(food_table_value)
+		or customer_value == null or not is_instance_valid(customer_value)
+		or seat_value == null or not is_instance_valid(seat_value) or not (seat_value is Node3D)
+	):
 		tm.fail_task(task)
 		return
+	var food_table := food_table_value as Node
+	var customer := customer_value as Node
+	var seat := seat_value as Node3D
 	if not _delivery_is_valid(customer, task):
 		tm.fail_task(task)
 		return
@@ -392,6 +432,8 @@ func _execute_deliver_food(task: Object) -> void:
 	if job_role == JobRole.CATERER and capacity > 1 and tm.has_method("claim_ready_delivery_tasks_for_worker"):
 		var extra_tasks: Array = tm.call("claim_ready_delivery_tasks_for_worker", _worker, task, capacity - 1)
 		delivery_tasks.append_array(extra_tasks)
+	_last_delivery_batch_count = delivery_tasks.size()
+	_observed_max_carry = maxi(_observed_max_carry, _last_delivery_batch_count)
 
 	var reach = _get_reach_controller(_worker)
 	var delivery_multiplier := _duration_multiplier(_get_effective_speed_pct("delivery"))
@@ -672,8 +714,73 @@ func get_activity_status() -> Dictionary:
 		"customer_path": target_customer_path,
 		"reason": reason_text,
 		"destination": destination_text,
-		"stats": get_stats_summary()
+		"stats": get_stats_summary(),
+		"is_executing": _is_executing,
+		"pending_role": _get_job_role_label(_pending_job_role) if _pending_job_role >= 0 else "",
+		"performance": get_performance_summary(),
 	}
+
+func get_performance_summary() -> Dictionary:
+	var elapsed_minutes: float = maxf(0.1, ((Time.get_ticks_msec() / 1000.0) - _shift_started_at) / 60.0)
+	return {
+		"elapsed_minutes": elapsed_minutes,
+		"orders": int(_performance_counts["orders"]),
+		"burgers": int(_performance_counts["burgers"]),
+		"meat_batches": int(_performance_counts["meat_batches"]),
+		"fries_batches": int(_performance_counts["fries_batches"]),
+		"deliveries": int(_performance_counts["deliveries"]),
+		"failed": int(_performance_counts["failed"]),
+		"orders_per_min": float(_performance_counts["orders"]) / elapsed_minutes,
+		"burgers_per_min": float(_performance_counts["burgers"]) / elapsed_minutes,
+		"meat_batches_per_min": float(_performance_counts["meat_batches"]) / elapsed_minutes,
+		"fries_batches_per_min": float(_performance_counts["fries_batches"]) / elapsed_minutes,
+		"deliveries_per_min": float(_performance_counts["deliveries"]) / elapsed_minutes,
+		"avg_order_seconds": _avg_seconds("orders"),
+		"avg_burger_seconds": _avg_seconds("burgers"),
+		"avg_meat_seconds": _avg_seconds("meat_batches"),
+		"avg_fries_seconds": _avg_seconds("fries_batches"),
+		"avg_delivery_seconds": _avg_seconds("deliveries"),
+		"observed_max_carry": _observed_max_carry,
+	}
+
+func get_interview_summary() -> Dictionary:
+	return {
+		"delivery_capacity": stats.delivery_capacity if stats != null else 1,
+	}
+
+func is_executing_task() -> bool:
+	return _is_executing
+
+func _record_task_performance(task: Object, duration_seconds: float) -> void:
+	if task == null:
+		return
+	if String(task.get("status")) == "failed":
+		_performance_counts["failed"] = int(_performance_counts["failed"]) + 1
+		return
+	var tm = get_node_or_null("/root/TaskManager")
+	if tm == null:
+		return
+	match int(task.get("type")):
+		tm.TaskType.PROCESS_ORDER:
+			_add_performance_sample("orders", 1, duration_seconds)
+		tm.TaskType.COOK_MEAT:
+			_add_performance_sample("meat_batches", 1, duration_seconds)
+		tm.TaskType.FRY_FRIES:
+			_add_performance_sample("fries_batches", 1, duration_seconds)
+		tm.TaskType.ASSEMBLE_BURGER:
+			_add_performance_sample("burgers", 1, duration_seconds)
+		tm.TaskType.DELIVER_FOOD:
+			_add_performance_sample("deliveries", maxi(1, _last_delivery_batch_count), duration_seconds)
+
+func _add_performance_sample(key: String, amount: int, duration_seconds: float) -> void:
+	_performance_counts[key] = int(_performance_counts.get(key, 0)) + amount
+	_performance_seconds[key] = float(_performance_seconds.get(key, 0.0)) + maxf(0.0, duration_seconds)
+
+func _avg_seconds(key: String) -> float:
+	var count := int(_performance_counts.get(key, 0))
+	if count <= 0:
+		return 0.0
+	return float(_performance_seconds.get(key, 0.0)) / float(count)
 
 func get_job_role_options() -> Array[Dictionary]:
 	return [
@@ -690,9 +797,31 @@ func get_job_role_label() -> String:
 
 func set_job_role(role: int) -> void:
 	job_role = role
+	if _pending_job_role == role:
+		_pending_job_role = -1
+		_pending_job_role_reason = ""
 	_last_idle_station = null
 	if is_inside_tree() and not _is_executing:
 		_move_to_assigned_idle_station()
+
+func request_job_role(role: int, reason: String = "") -> bool:
+	if not _is_executing:
+		set_job_role(role)
+		return true
+	_pending_job_role = role
+	_pending_job_role_reason = reason
+	return false
+
+func get_pending_job_role_label() -> String:
+	return _get_job_role_label(_pending_job_role) if _pending_job_role >= 0 else ""
+
+func _apply_pending_job_role_if_any() -> void:
+	if _pending_job_role < 0:
+		return
+	var role := _pending_job_role
+	_pending_job_role = -1
+	_pending_job_role_reason = ""
+	set_job_role(role)
 
 func _get_job_role_label(role: int) -> String:
 	match role:
