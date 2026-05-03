@@ -79,6 +79,7 @@
 [ext_resource type="Texture2D" uid="uid://ckex15l6xbggo" path="res://assets/map/BurgerPiz_Shelf_fd.png" id="74_7cehg"]
 [ext_resource type="Texture2D" uid="uid://bwu4h6j7ow014" path="res://assets/map/BurgerPiz_Shelf_FR.png" id="75_8w8v7"]
 [ext_resource type="PackedScene" uid="uid://dwg0tjvkpor6v" path="res://scenes/props/misc/crt_tv.tscn" id="81_1ecrv"]
+[ext_resource type="PackedScene" uid="uid://btyk7w4msy1ti" path="res://scenes/characters/boss_npc.tscn" id="82_o25jv"]
 [ext_resource type="Script" uid="uid://c4fu1gvqdnadj" path="res://src/core/customer_manager.gd" id="83_pfjsg"]
 [ext_resource type="Script" uid="uid://xb0ql6d2eqoc" path="res://src/core/employee_manager.gd" id="84_xt107"]
 
@@ -27291,6 +27292,7 @@ data = PackedVector3Array(-2.5482, -0.0823, -0.4168, 3.2581, 0.4168, -0.4168, -2
 [node name="NavigationRegion3D" type="NavigationRegion3D" unique_id=292660425]
 navigation_mesh = SubResource("NavigationMesh_iroh0")
 script = ExtResource("3_wsrv8")
+npc_path = NodePath("BossNpc")
 
 [node name="BurgerPiz2" type="Node3D" parent="." unique_id=321264938]
 
@@ -33121,6 +33123,7 @@ script = ExtResource("4_vthih")
 table_seat_height_offset = 0.8
 regular_chair_table_seat_height_offset = 0.7
 chair_seat_toward_table_offset = 0.1
+seated_preview_table_ids = PackedInt32Array()
 seated_actor_height_offset = -1.4
 
 [node name="WorkerSpawnPoint" type="Marker3D" parent="." unique_id=1686686192]
@@ -33469,6 +33472,7 @@ transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0.41
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.9751453, 3.407163, 5.9505687)
 mesh = SubResource("ArrayMesh_56gib")
 script = ExtResource("7_menu_display")
+display_mode = "Menu"
 display_text = "BIT MARKET MENU
 
 BURGER  $5
@@ -33526,3 +33530,6 @@ spawn_point_path = NodePath("../BurgerPiz2/Door_F_001")
 
 [node name="EmployeeManager" type="Node" parent="." unique_id=106836028]
 script = ExtResource("84_xt107")
+
+[node name="BossNpc" parent="." unique_id=3959846 instance=ExtResource("82_o25jv")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.48465478, 0.7601372, 11.608576)

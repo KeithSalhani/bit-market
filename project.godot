@@ -17,7 +17,6 @@ config/icon="res://assets/characters/icon.svg"
 
 [autoload]
 
-McpInteractionServer="*res://mcp_interaction_server.gd"
 TaskManager="*res://src/core/task_manager.gd"
 HUD="*res://scenes/ui/hud.tscn"
 RestaurantManager="*res://src/core/restaurant_manager.gd"

@@ -1,0 +1,28 @@
+[gd_scene format=3 uid="uid://btyk7w4msy1ti"]
+
+[ext_resource type="Script" uid="uid://bu7psljkxr33m" path="res://src/movement/npc_movement.gd" id="1_68mf8"]
+[ext_resource type="PackedScene" uid="uid://cbpytn768xf21" path="res://scenes/characters/boss.tscn" id="1_kobxk"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_4kcaa"]
+
+[node name="BossNpc" type="CharacterBody3D" unique_id=3959846]
+script = ExtResource("1_68mf8")
+print_debug_messages = false
+visual_node_path = NodePath("Sketchfab_Scene")
+animation_player_path = NodePath("Sketchfab_Scene/AnimationPlayer")
+idle_animation = &"HumanM@Idle01"
+move_animation = &"HumanM@Walk01_Forward"
+fall_animation = &"HumanM@Idle01"
+
+[node name="Sketchfab_Scene" parent="." unique_id=1627774776 instance=ExtResource("1_kobxk")]
+transform = Transform3D(1.5, 0, 0, 0, 1.5, 0, 0, 0, 1.5, 0, -1.5434587, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=427272326]
+transform = Transform3D(0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0, 0.10412192, 0)
+shape = SubResource("CapsuleShape3D_4kcaa")
+
+[node name="NavigationAgent3D" type="NavigationAgent3D" parent="." unique_id=1246784881]
+path_desired_distance = 0.65
+target_desired_distance = 0.35
+avoidance_enabled = true
+max_speed = 4.5

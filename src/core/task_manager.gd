@@ -1,5 +1,7 @@
 extends Node
 
+signal tasks_changed()
+
 enum TaskType {
 	PROCESS_ORDER,
 	COOK_MEAT,
@@ -33,6 +35,7 @@ func add_task(type: int, args: Dictionary = {}) -> Task:
 	if not _prepare_task_for_queue(task):
 		return null
 	pending_tasks.append(task)
+	tasks_changed.emit()
 	# print("TaskManager: Added task type ", type)
 	return task
 
@@ -69,6 +72,7 @@ func get_next_task(worker: Node) -> Task:
 				if not _customer_can_accept_delivery(customer, task):
 					_clear_delivery_reservation(customer, task)
 					pending_tasks.remove_at(i)
+					tasks_changed.emit()
 					continue
 				# Only assign deliver food if there is actually food on the table
 				var food_table = task.args.get("food_table")
@@ -92,6 +96,7 @@ func get_next_task(worker: Node) -> Task:
 			task.assigned_worker = worker
 			task.status = "in_progress"
 			active_tasks.append(task)
+			tasks_changed.emit()
 			# print("TaskManager: Assigned task type ", task.type, " to ", worker.name)
 			return task
 		i += 1
@@ -356,6 +361,7 @@ func complete_task(task: Task) -> void:
 	if task in active_tasks:
 		task.status = "completed"
 		active_tasks.erase(task)
+		tasks_changed.emit()
 
 func cancel_task(task: Task) -> void:
 	if task.type == TaskType.DELIVER_FOOD:
@@ -365,6 +371,7 @@ func cancel_task(task: Task) -> void:
 		task.assigned_worker = null
 		task.status = "pending"
 		pending_tasks.append(task)
+		tasks_changed.emit()
 
 func fail_task(task: Task) -> void:
 	if task.type == TaskType.DELIVER_FOOD:
@@ -375,6 +382,7 @@ func fail_task(task: Task) -> void:
 		pending_tasks.erase(task)
 	task.assigned_worker = null
 	task.status = "failed"
+	tasks_changed.emit()
 
 func get_task_type_label(type: int) -> String:
 	match type:

@@ -106,7 +106,10 @@ func _physics_process(delta: float) -> void:
 		_wait_timer -= delta
 		if _wait_timer <= 0:
 			var rm = get_node("/root/RestaurantManager")
-			rm.add_money(15.50) # Pay
+			var order_total := 15.50
+			if rm != null and rm.has_method("get_food_price"):
+				order_total = float(rm.call("get_food_price", ordered_food_type))
+			rm.add_money(order_total) # Pay
 			_leave()
 			
 	elif state == State.LEAVING:

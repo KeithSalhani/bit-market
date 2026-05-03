@@ -1,5 +1,11 @@
 extends Node3D
 
+@export_enum("Custom", "Menu", "Orders") var display_mode: String = "Custom":
+	set(value):
+		display_mode = value
+		if is_node_ready():
+			_update_dynamic_display_text()
+
 @export_multiline var display_text: String = "BIT MARKET\nCRT DISPLAY READY\n\nOrders: 0\nStatus: Online":
 	set(value):
 		display_text = value
@@ -69,6 +75,8 @@ extends Node3D
 @export var center_top_path: NodePath
 @export var center_bottom_path: NodePath
 @export var center_path: NodePath = ^"root/center"
+@export_range(1, 12, 1) var max_order_lines := 7
+@export_range(0.1, 5.0, 0.1) var order_refresh_seconds := 0.5
 
 var _display_root: Node3D
 var _screen_mesh: MeshInstance3D
@@ -89,18 +97,32 @@ var _right_axis := Vector3.RIGHT
 var _up_axis := Vector3.UP
 var _face_axis := Vector3.FORWARD
 var _center_push := Vector3.ZERO
+var _order_refresh_timer := 0.0
 
 
 func _ready() -> void:
 	_cache_markers()
+	_connect_dynamic_sources()
+	_update_dynamic_display_text()
 	_rebuild_display()
 
 
+func _process(delta: float) -> void:
+	if display_mode != "Orders":
+		return
+	_order_refresh_timer -= delta
+	if _order_refresh_timer <= 0.0:
+		_order_refresh_timer = order_refresh_seconds
+		_update_dynamic_display_text()
+
+
 func set_display_text(value: String) -> void:
+	display_mode = "Custom"
 	display_text = value
 
 
 func append_line(value: String) -> void:
+	display_mode = "Custom"
 	if display_text.is_empty():
 		display_text = value
 	else:
@@ -108,7 +130,118 @@ func append_line(value: String) -> void:
 
 
 func clear_display() -> void:
+	display_mode = "Custom"
 	display_text = ""
+
+
+func _connect_dynamic_sources() -> void:
+	var restaurant_manager := get_node_or_null("/root/RestaurantManager")
+	if restaurant_manager != null and restaurant_manager.has_signal("menu_prices_changed"):
+		var price_callback := Callable(self, "_on_dynamic_source_changed")
+		if not restaurant_manager.is_connected("menu_prices_changed", price_callback):
+			restaurant_manager.connect("menu_prices_changed", price_callback)
+
+	var task_manager := get_node_or_null("/root/TaskManager")
+	if task_manager != null and task_manager.has_signal("tasks_changed"):
+		var task_callback := Callable(self, "_on_dynamic_source_changed")
+		if not task_manager.is_connected("tasks_changed", task_callback):
+			task_manager.connect("tasks_changed", task_callback)
+
+
+func _on_dynamic_source_changed() -> void:
+	_update_dynamic_display_text()
+
+
+func _update_dynamic_display_text() -> void:
+	if display_mode == "Menu":
+		display_text = _build_menu_text()
+	elif display_mode == "Orders":
+		display_text = _build_orders_text()
+
+
+func _build_menu_text() -> String:
+	var restaurant_manager := get_node_or_null("/root/RestaurantManager")
+	var items: Array[Dictionary] = [
+		{"label": "BURGER", "price": 5.0},
+		{"label": "FRIES", "price": 2.0},
+		{"label": "SODA", "price": 1.0},
+	]
+	if restaurant_manager != null and restaurant_manager.has_method("get_menu_items"):
+		var menu_items: Variant = restaurant_manager.call("get_menu_items")
+		if menu_items is Array:
+			items.clear()
+			for item in menu_items:
+				if item is Dictionary:
+					items.append(item)
+
+	var lines: PackedStringArray = ["BIT MARKET MENU", ""]
+	for item in items:
+		lines.append("%-8s %s" % [String(item.get("label", "ITEM")), _format_price(float(item.get("price", 0.0)))])
+	return "\n".join(lines)
+
+
+func _build_orders_text() -> String:
+	var task_manager := get_node_or_null("/root/TaskManager")
+	if task_manager == null:
+		return "BIT MARKET ORDERS\n\nTask manager offline"
+
+	var order_lines: PackedStringArray = []
+	_append_order_lines(order_lines, task_manager.active_tasks, "ACTIVE")
+	_append_order_lines(order_lines, task_manager.pending_tasks, "PENDING")
+
+	var lines: PackedStringArray = [
+		"BIT MARKET ORDERS",
+		"ACTIVE %d  WAITING %d" % [task_manager.active_tasks.size(), task_manager.pending_tasks.size()],
+		"",
+	]
+	if order_lines.is_empty():
+		lines.append("No orders")
+	else:
+		lines.append_array(order_lines)
+	return "\n".join(lines)
+
+
+func _append_order_lines(lines: PackedStringArray, tasks: Array, status_label: String) -> void:
+	for task in tasks:
+		if lines.size() >= max_order_lines:
+			return
+		if task == null:
+			continue
+		var food_type := String(task.args.get("food_type", ""))
+		if food_type.is_empty() and task.type != 0:
+			continue
+		var task_label := _short_task_label(int(task.type))
+		var food_label := food_type.to_upper() if not food_type.is_empty() else task_label
+		var customer_label := _node_label(task.args.get("customer"))
+		var worker_label := _node_label(task.assigned_worker)
+		if worker_label == "-":
+			worker_label = status_label
+		lines.append("%s %-7s C:%s W:%s" % [task_label, food_label, customer_label, worker_label])
+
+
+func _short_task_label(task_type: int) -> String:
+	match task_type:
+		0:
+			return "ORDER"
+		1:
+			return "MEAT "
+		2:
+			return "FRIES"
+		3:
+			return "BUILD"
+		4:
+			return "SERVE"
+	return "TASK "
+
+
+func _node_label(value: Variant) -> String:
+	if value is Node and is_instance_valid(value):
+		return String((value as Node).name)
+	return "-"
+
+
+func _format_price(price: float) -> String:
+	return "$%.2f" % price
 
 
 func _cache_markers() -> void:
