@@ -23,6 +23,7 @@ var _smoke_particles: Array[GPUParticles3D] = []
 var _ember_particles: Array[GPUParticles3D] = []
 var _heat_shimmer: MeshInstance3D
 var _cook_light: OmniLight3D
+var _meat_top_fill_light: OmniLight3D
 var _is_busy := false
 var _reserved_worker: Node = null
 
@@ -219,6 +220,7 @@ func _create_station_vfx(parent: Node3D) -> void:
 	if heat_shimmer_enabled:
 		_heat_shimmer = VFX.create_heat_shimmer(parent, "GrillHeatShimmer", Vector3(0.0, 0.22, 0.0), Vector2(0.8, 0.62))
 	_cook_light = VFX.create_flicker_light(parent, "GrillCookLight", Vector3(0.0, 0.24, 0.0), Color(1.0, 0.42, 0.12, 1.0), 0.0, 1.6)
+	_meat_top_fill_light = VFX.create_flicker_light(parent, "GrillMeatTopFill", Vector3(0.0, 0.48, 0.0), Color(1.0, 0.72, 0.42, 1.0), 0.0, 0.85)
 
 func _set_station_vfx_active(value: bool) -> void:
 	if not station_vfx_enabled:
@@ -227,6 +229,8 @@ func _set_station_vfx_active(value: bool) -> void:
 	VFX.set_node_visible(_heat_shimmer, value and heat_shimmer_enabled)
 	if _cook_light != null:
 		_cook_light.light_energy = 0.55 if value else 0.0
+	if _meat_top_fill_light != null:
+		_meat_top_fill_light.light_energy = 0.38 if value else 0.0
 
 func _spawn_place_burst(global_position: Vector3, color: Color = Color(1.0, 0.42, 0.14, 0.8)) -> void:
 	if not station_vfx_enabled:

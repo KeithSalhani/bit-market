@@ -8,6 +8,8 @@ extends Node3D
 @export var lamppost_marker_lights_enabled := true
 @export var rainy_night_enabled := true
 @export var rain_enabled := true
+@export var rain_audio_enabled := true
+@export var rain_sound_path: NodePath = ^"../rain-sound"
 @export_range(0.25, 2.0, 0.05) var quality_scale := 1.0
 @export_range(0.0, 8.0, 0.05) var fixture_light_energy := 2.4
 @export_range(1.0, 12.0, 0.1) var fixture_light_range := 5.2
@@ -21,11 +23,21 @@ extends Node3D
 @export_range(0.0, 2.0, 0.01) var rain_intensity := 1.45
 @export var rain_center := Vector3(52.0, 14.0, 24.0)
 @export var rain_extents := Vector3(115.0, 1.0, 70.0)
-@export var rain_roof_padding := Vector3(2.0, 0.0, 2.0)
+@export var rain_roof_padding := Vector3(-3.0, 0.0, -3.0)
 @export_range(0.05, 1.0, 0.01) var rain_roof_density_scale := 0.34
 @export_range(0.4, 4.0, 0.05) var rain_roof_clearance := 1.65
 @export_range(8.0, 36.0, 0.5) var rain_spawn_height := 28.0
 @export_range(3.0, 18.0, 0.25) var rain_roof_spawn_height := 10.0
+@export_range(-30.0, 6.0, 0.5) var rain_outside_volume_db := -2.0
+@export_range(-40.0, 0.0, 0.5) var rain_inside_volume_db := -11.0
+@export_range(500.0, 12000.0, 50.0) var rain_outside_cutoff_hz := 10500.0
+@export_range(300.0, 6000.0, 50.0) var rain_inside_cutoff_hz := 1450.0
+@export_range(1.0, 12.0, 0.25) var rain_audio_muffle_speed := 4.5
+@export var rain_audio_right_boundary_path: NodePath = ^"../BurgerPiz2/Door_F_001"
+@export var rain_audio_back_boundary_path: NodePath = ^"../BurgerPiz2/Windows_002"
+@export var rain_audio_left_boundary_path: NodePath = ^"../BurgerPiz2/Windows"
+@export var rain_audio_front_boundary_path: NodePath = ^"../BurgerPiz2/Door"
+@export_range(0.0, 4.0, 0.05) var rain_audio_boundary_padding := 0.35
 
 var _environment_node: WorldEnvironment
 var _sun: DirectionalLight3D
@@ -37,6 +49,12 @@ var _fixture_glow_material: StandardMaterial3D
 var _lamppost_pool_material: ShaderMaterial
 var _rain_material: StandardMaterial3D
 var _rain_mist_material: StandardMaterial3D
+var _rain_audio_player: AudioStreamPlayer3D
+var _rain_audio_filter: AudioEffectLowPassFilter
+var _rain_audio_bus_name := &"RuntimeRainAmbience"
+var _rain_audio_muffle := 0.0
+var _restaurant_inside_bounds := AABB()
+var _has_restaurant_inside_bounds := false
 
 const LAMPPOST_POOL_SHADER := """
 shader_type spatial;
@@ -57,6 +75,7 @@ void fragment() {
 func _ready() -> void:
 	if not vfx_enabled:
 		return
+	set_process(rain_audio_enabled)
 	if atmosphere_enabled:
 		_setup_environment()
 	if sun_enabled:
@@ -69,6 +88,12 @@ func _ready() -> void:
 		_setup_dust()
 	if rain_enabled:
 		_setup_rain()
+	if rain_audio_enabled:
+		_setup_rain_audio()
+
+func _process(delta: float) -> void:
+	if rain_audio_enabled:
+		_update_rain_audio(delta)
 
 func _setup_environment() -> void:
 	_environment_node = find_child("RestaurantWorldEnvironment", false, false) as WorldEnvironment
@@ -171,6 +196,118 @@ func _setup_rain() -> void:
 			0.62,
 			_make_rain_process_material(extents, 7.5, 10.5, Vector3(-0.55, -22.0, -0.22))
 		)
+
+func _setup_rain_audio() -> void:
+	_rain_audio_player = get_node_or_null(rain_sound_path) as AudioStreamPlayer3D
+	if _rain_audio_player == null:
+		_rain_audio_player = _find_rain_audio_player()
+	if _rain_audio_player == null:
+		return
+
+	_setup_rain_audio_bus()
+	_cache_restaurant_inside_bounds()
+	_rain_audio_player.attenuation_model = AudioStreamPlayer3D.ATTENUATION_DISABLED
+	_rain_audio_player.max_distance = 100000.0
+	_rain_audio_player.bus = _rain_audio_bus_name
+	_rain_audio_player.volume_db = rain_outside_volume_db
+	if not _rain_audio_player.playing:
+		_rain_audio_player.play()
+
+func _find_rain_audio_player() -> AudioStreamPlayer3D:
+	var scene_root := get_tree().current_scene
+	if scene_root == null:
+		return null
+
+	var found := scene_root.find_child("rain-sound", true, false) as AudioStreamPlayer3D
+	if found != null:
+		return found
+	return scene_root.find_child("*rain*", true, false) as AudioStreamPlayer3D
+
+func _setup_rain_audio_bus() -> void:
+	var bus_index := AudioServer.get_bus_index(_rain_audio_bus_name)
+	if bus_index == -1:
+		AudioServer.add_bus()
+		bus_index = AudioServer.get_bus_count() - 1
+		AudioServer.set_bus_name(bus_index, _rain_audio_bus_name)
+		AudioServer.set_bus_send(bus_index, &"Master")
+
+	_rain_audio_filter = null
+	for effect_index in range(AudioServer.get_bus_effect_count(bus_index)):
+		var effect := AudioServer.get_bus_effect(bus_index, effect_index)
+		if effect is AudioEffectLowPassFilter:
+			_rain_audio_filter = effect as AudioEffectLowPassFilter
+			break
+
+	if _rain_audio_filter == null:
+		_rain_audio_filter = AudioEffectLowPassFilter.new()
+		AudioServer.add_bus_effect(bus_index, _rain_audio_filter)
+	_rain_audio_filter.cutoff_hz = rain_outside_cutoff_hz
+	_rain_audio_filter.resonance = 0.55
+
+func _update_rain_audio(delta: float) -> void:
+	if _rain_audio_player == null or not is_instance_valid(_rain_audio_player):
+		_setup_rain_audio()
+		return
+
+	if not _rain_audio_player.playing:
+		_rain_audio_player.play()
+
+	var target_muffle := 1.0 if _is_listener_inside_restaurant() else 0.0
+	var blend := 1.0 - exp(-rain_audio_muffle_speed * delta)
+	_rain_audio_muffle = lerpf(_rain_audio_muffle, target_muffle, blend)
+	_rain_audio_player.volume_db = lerpf(rain_outside_volume_db, rain_inside_volume_db, _rain_audio_muffle)
+	if _rain_audio_filter != null:
+		_rain_audio_filter.cutoff_hz = lerpf(rain_outside_cutoff_hz, rain_inside_cutoff_hz, _rain_audio_muffle)
+
+func _is_listener_inside_restaurant() -> bool:
+	if not _has_restaurant_inside_bounds:
+		_cache_restaurant_inside_bounds()
+	if not _has_restaurant_inside_bounds:
+		return false
+
+	var listener_position := _get_listener_position()
+	var min_pos := _restaurant_inside_bounds.position
+	var max_pos := _restaurant_inside_bounds.position + _restaurant_inside_bounds.size
+	return (
+		listener_position.x >= min_pos.x
+		and listener_position.x <= max_pos.x
+		and listener_position.z >= min_pos.z
+		and listener_position.z <= max_pos.z
+		and listener_position.y <= max_pos.y + 2.4
+	)
+
+func _get_listener_position() -> Vector3:
+	var camera := get_viewport().get_camera_3d()
+	if camera != null:
+		return camera.global_position
+
+	var scene_root := get_tree().current_scene
+	if scene_root == null:
+		return global_position
+
+	var player := scene_root.find_child("CharacterBody3D", true, false) as Node3D
+	if player != null:
+		return player.global_position
+	return global_position
+
+func _cache_restaurant_inside_bounds() -> void:
+	var right_boundary := get_node_or_null(rain_audio_right_boundary_path) as Node3D
+	var back_boundary := get_node_or_null(rain_audio_back_boundary_path) as Node3D
+	var left_boundary := get_node_or_null(rain_audio_left_boundary_path) as Node3D
+	var front_boundary := get_node_or_null(rain_audio_front_boundary_path) as Node3D
+	if right_boundary == null or back_boundary == null or left_boundary == null or front_boundary == null:
+		_has_restaurant_inside_bounds = false
+		return
+
+	var min_x := minf(left_boundary.global_position.x, right_boundary.global_position.x) - rain_audio_boundary_padding
+	var max_x := maxf(left_boundary.global_position.x, right_boundary.global_position.x) + rain_audio_boundary_padding
+	var min_z := minf(front_boundary.global_position.z, back_boundary.global_position.z) - rain_audio_boundary_padding
+	var max_z := maxf(front_boundary.global_position.z, back_boundary.global_position.z) + rain_audio_boundary_padding
+	_restaurant_inside_bounds = AABB(
+		Vector3(min_x, -20.0, min_z),
+		Vector3(max_x - min_x, 60.0, max_z - min_z)
+	)
+	_has_restaurant_inside_bounds = true
 
 func _disable_legacy_rain_emitters() -> void:
 	for node_name in [&"RestaurantRain", &"RestaurantRainMist"]:

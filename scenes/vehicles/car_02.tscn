@@ -1,0 +1,132 @@
+[gd_scene format=3 uid="uid://c3g7roaydtmcr"]
+
+[ext_resource type="Script" path="res://src/vehicles/traffic_vehicle.gd" id="1_script"]
+[ext_resource type="ArrayMesh" uid="uid://8jq245q1sdof" path="res://assets/vehicles/car_02/car_02_body.obj" id="2_body"]
+[ext_resource type="ArrayMesh" uid="uid://blacd1mpmihre" path="res://assets/vehicles/car_02/wheel_front_left.obj" id="3_wheel_front_left"]
+[ext_resource type="ArrayMesh" uid="uid://d3pm50ymkp0od" path="res://assets/vehicles/car_02/wheel_front_right.obj" id="4_wheel_front_right"]
+[ext_resource type="ArrayMesh" uid="uid://tj418un3in86" path="res://assets/vehicles/car_02/wheel_rear_left.obj" id="5_wheel_rear_left"]
+[ext_resource type="ArrayMesh" uid="uid://cd1dp274l8hml" path="res://assets/vehicles/car_02/wheel_rear_right.obj" id="6_wheel_rear_right"]
+[ext_resource type="AudioStream" uid="uid://cthdvip2hvto1" path="res://assets/vehicles/Sound effects/Car_Engine_Loop.ogg" id="7_engine"]
+
+[sub_resource type="Environment" id="Environment_preview"]
+background_mode = 1
+background_color = Color(0.05, 0.06, 0.08, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.65, 0.7, 0.8, 1)
+ambient_light_energy = 0.7
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_headlight_lens"]
+albedo_color = Color(1, 0.86, 0.45, 1)
+emission_enabled = true
+emission = Color(1, 0.78, 0.32, 1)
+emission_energy_multiplier = 7.0
+
+[sub_resource type="SphereMesh" id="SphereMesh_headlight_lens"]
+radius = 0.16
+height = 0.16
+radial_segments = 12
+rings = 6
+
+[node name="Car02" type="Node3D" unique_id=1970054441]
+script = ExtResource("1_script")
+
+[node name="Body" type="MeshInstance3D" parent="." unique_id=788213160]
+mesh = ExtResource("2_body")
+
+[node name="WheelFrontLeft" type="MeshInstance3D" parent="." unique_id=1932181018]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.046846, 0.4361385, 1.899)
+mesh = ExtResource("3_wheel_front_left")
+
+[node name="WheelFrontRight" type="MeshInstance3D" parent="." unique_id=1415706459]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.046846, 0.4361385, 1.899)
+mesh = ExtResource("4_wheel_front_right")
+
+[node name="WheelRearLeft" type="MeshInstance3D" parent="." unique_id=1644213168]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.046846, 0.4361395, -1.815055)
+mesh = ExtResource("5_wheel_rear_left")
+
+[node name="WheelRearRight" type="MeshInstance3D" parent="." unique_id=1563854189]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.046846, 0.4361395, -1.815055)
+mesh = ExtResource("6_wheel_rear_right")
+
+[node name="EngineLoop" type="AudioStreamPlayer3D" parent="." unique_id=1133472435]
+stream = ExtResource("7_engine")
+volume_db = -6.0
+pitch_scale = 0.95
+autoplay = true
+max_distance = 170.0
+unit_size = 1.0
+
+[node name="PreviewSun" type="DirectionalLight3D" parent="." unique_id=43315146]
+transform = Transform3D(0.78801, -0.520935, 0.328412, 0, 0.533322, 0.845912, -0.615662, -0.666529, 0.420264, 0, 4, 0)
+light_energy = 1.6
+
+[node name="PreviewEnvironment" type="WorldEnvironment" parent="." unique_id=160130123]
+environment = SubResource("Environment_preview")
+
+[node name="PreviewCamera" type="Camera3D" parent="." unique_id=309713296]
+transform = Transform3D(0.915641, -0.090656, 0.39161, 0, 0.97421, 0.225642, -0.402, -0.206611, 0.89196, 4.5, 2.7, 7.2)
+fov = 48.0
+
+[node name="headlights" type="Node3D" parent="." unique_id=98853880]
+
+[node name="Node3D" type="SpotLight3D" parent="headlights" unique_id=1739450334]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -0.82718205, 0.9181551, 3.0724378)
+light_color = Color(1, 0.88, 0.62, 1)
+light_energy = 5.5
+light_volumetric_fog_energy = 1.1
+shadow_enabled = true
+spot_range = 42.0
+spot_attenuation = 2.2
+spot_angle = 42.0
+spot_angle_attenuation = 1.6
+[node name="Lens" type="MeshInstance3D" parent="headlights/Node3D"]
+mesh = SubResource("SphereMesh_headlight_lens")
+material_override = SubResource("StandardMaterial3D_headlight_lens")
+cast_shadow = 0
+
+[node name="LensGlow" type="OmniLight3D" parent="headlights/Node3D"]
+light_color = Color(1, 0.82, 0.42, 1)
+light_energy = 1.7
+light_volumetric_fog_energy = 0.28
+omni_range = 4.0
+omni_attenuation = 2.1
+
+[node name="Node3D2" type="SpotLight3D" parent="headlights" unique_id=764580757]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0.84316224, 0.9181551, 3.0724378)
+light_color = Color(1, 0.88, 0.62, 1)
+light_energy = 5.5
+light_volumetric_fog_energy = 1.1
+shadow_enabled = true
+spot_range = 42.0
+spot_attenuation = 2.2
+spot_angle = 42.0
+spot_angle_attenuation = 1.6
+[node name="Lens" type="MeshInstance3D" parent="headlights/Node3D2"]
+mesh = SubResource("SphereMesh_headlight_lens")
+material_override = SubResource("StandardMaterial3D_headlight_lens")
+cast_shadow = 0
+
+[node name="LensGlow" type="OmniLight3D" parent="headlights/Node3D2"]
+light_color = Color(1, 0.82, 0.42, 1)
+light_energy = 1.7
+light_volumetric_fog_energy = 0.28
+omni_range = 4.0
+omni_attenuation = 2.1
+
+[node name="backlights" type="Node3D" parent="." unique_id=838653574]
+
+[node name="Node3D" type="OmniLight3D" parent="backlights" unique_id=387330664]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.941, 1.1670067, -3.183053)
+light_color = Color(1, 0.04, 0.015, 1)
+light_energy = 1.6
+light_volumetric_fog_energy = 0.35
+omni_range = 6.0
+omni_attenuation = 2.6
+
+[node name="Node3D2" type="OmniLight3D" parent="backlights" unique_id=1632605480]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.937, 1.1670067, -3.183053)
+light_color = Color(1, 0.04, 0.015, 1)
+light_energy = 1.6
+light_volumetric_fog_energy = 0.35
+omni_range = 6.0
+omni_attenuation = 2.6
