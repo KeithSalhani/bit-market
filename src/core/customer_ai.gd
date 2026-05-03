@@ -1,5 +1,7 @@
 extends Node
 
+const EATING_SOUND := preload("res://assets/audio/freesound_community-eating-chips-81092.mp3")
+
 enum State {
 	ENTERING,
 	WAITING_FOR_REGISTER,
@@ -27,7 +29,9 @@ var _held_food_item: Node3D = null
 var _assigned_register_marker: Node3D = null
 var _register_task_requested := false
 var _eating_controller: Node = null
+var _eating_audio_player: AudioStreamPlayer3D = null
 var _ordered_at_seconds := 0.0
+var _has_paid := false
 
 const FOOD_BURGER := "burger"
 const FOOD_FRIES := "fries"
@@ -106,11 +110,6 @@ func _physics_process(delta: float) -> void:
 	elif state == State.EATING:
 		_wait_timer -= delta
 		if _wait_timer <= 0:
-			var rm = get_node("/root/RestaurantManager")
-			var order_total := 15.50
-			if rm != null and rm.has_method("get_food_price"):
-				order_total = float(rm.call("get_food_price", ordered_food_type))
-			rm.add_money(order_total) # Pay
 			_leave()
 			
 	elif state == State.LEAVING:
@@ -137,6 +136,7 @@ func take_order(worker: Node) -> void:
 	_ordered_at_seconds = Time.get_ticks_msec() / 1000.0
 	ordered_food_type = _choose_order_type()
 	_show_order_label()
+	_collect_order_payment()
 	var rm := get_node_or_null("/root/RestaurantManager")
 	if rm != null and rm.has_method("record_order_placed"):
 		rm.call("record_order_placed")
@@ -246,6 +246,21 @@ func receive_food(reservation: Variant = null, food_item: Node3D = null) -> bool
 func get_ordered_food_type() -> String:
 	return ordered_food_type
 
+func has_paid() -> bool:
+	return _has_paid
+
+func _collect_order_payment() -> void:
+	if _has_paid:
+		return
+	var rm := get_node_or_null("/root/RestaurantManager")
+	if rm == null or not rm.has_method("add_money"):
+		return
+	var order_total := 15.50
+	if rm.has_method("get_food_price"):
+		order_total = float(rm.call("get_food_price", ordered_food_type))
+	rm.call("add_money", order_total)
+	_has_paid = true
+
 func _choose_order_type() -> String:
 	return FOOD_BURGER if randf() > 0.5 else FOOD_FRIES
 
@@ -306,11 +321,36 @@ func _start_eating_motion() -> void:
 	_eating_controller = _get_eating_controller()
 	if _eating_controller != null and _eating_controller.has_method("start_eating"):
 		_eating_controller.call("start_eating")
+	_start_eating_audio()
 
 func _stop_eating_motion() -> void:
 	_eating_controller = _get_eating_controller()
 	if _eating_controller != null and _eating_controller.has_method("stop_eating"):
 		_eating_controller.call("stop_eating")
+	_stop_eating_audio()
+
+func _start_eating_audio() -> void:
+	if customer == null or not is_instance_valid(customer):
+		return
+	if _eating_audio_player == null or not is_instance_valid(_eating_audio_player):
+		_eating_audio_player = AudioStreamPlayer3D.new()
+		_eating_audio_player.name = "EatingSound"
+		_eating_audio_player.stream = EATING_SOUND
+		_eating_audio_player.max_distance = 3.0
+		_eating_audio_player.unit_size = 3.0
+		_eating_audio_player.finished.connect(_on_eating_audio_finished)
+		customer.add_child(_eating_audio_player)
+		_eating_audio_player.position = Vector3(0.0, 1.4, 0.0)
+	if not _eating_audio_player.playing:
+		_eating_audio_player.play()
+
+func _stop_eating_audio() -> void:
+	if _eating_audio_player != null and is_instance_valid(_eating_audio_player):
+		_eating_audio_player.stop()
+
+func _on_eating_audio_finished() -> void:
+	if state == State.EATING and _eating_audio_player != null and is_instance_valid(_eating_audio_player):
+		_eating_audio_player.play()
 
 func _get_eating_controller() -> Node:
 	if _eating_controller != null and is_instance_valid(_eating_controller):
