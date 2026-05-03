@@ -74,23 +74,9 @@ func get_next_task(worker: Node) -> Task:
 					pending_tasks.remove_at(i)
 					tasks_changed.emit()
 					continue
-				# Only assign deliver food if there is actually food on the table
-				var food_table = task.args.get("food_table")
-				var food_type := String(task.args.get("food_type", ""))
-				if food_table and food_table.has_method("get_first_food_item"):
-					# We peek, we don't take it yet
-					var has_food = true
-					if food_table.has_method("has_food_item"):
-						has_food = bool(food_table.call("has_food_item", food_type))
-					else:
-						has_food = false
-						for item in food_table._stored_food_items:
-							if item != null and is_instance_valid(item):
-								has_food = true
-								break
-					if not has_food:
-						i += 1
-						continue # Skip this task for now, no food ready
+				if not _delivery_task_has_ready_food(task):
+					i += 1
+					continue
 			
 			pending_tasks.remove_at(i)
 			task.assigned_worker = worker
@@ -101,6 +87,50 @@ func get_next_task(worker: Node) -> Task:
 			return task
 		i += 1
 	return null
+
+func claim_ready_delivery_tasks_for_worker(worker: Node, excluded_task: Task, max_count: int) -> Array[Task]:
+	var claimed: Array[Task] = []
+	if worker == null or max_count <= 0:
+		return claimed
+	var ai = worker.get_node("WorkerAI") if worker.has_node("WorkerAI") else null
+	var role = ai.job_role if ai else ROLE_AUTO
+	if not _can_worker_do_task(role, TaskType.DELIVER_FOOD):
+		return claimed
+	var food_table: Variant = null
+	if excluded_task != null:
+		food_table = excluded_task.args.get("food_table")
+	var claimed_food_counts := {}
+	if excluded_task != null:
+		var excluded_food_type := String(excluded_task.args.get("food_type", ""))
+		claimed_food_counts[excluded_food_type] = 1
+
+	var i := 0
+	while i < pending_tasks.size() and claimed.size() < max_count:
+		var task := pending_tasks[i]
+		if task == excluded_task or task.type != TaskType.DELIVER_FOOD:
+			i += 1
+			continue
+		if food_table != null and task.args.get("food_table") != food_table:
+			i += 1
+			continue
+		var customer = task.args.get("customer")
+		if not _customer_can_accept_delivery(customer, task):
+			_clear_delivery_reservation(customer, task)
+			pending_tasks.remove_at(i)
+			continue
+		var food_type := String(task.args.get("food_type", ""))
+		var already_claimed_count := int(claimed_food_counts.get(food_type, 0))
+		if _delivery_ready_food_count(task) <= already_claimed_count:
+			i += 1
+			continue
+		pending_tasks.remove_at(i)
+		task.assigned_worker = worker
+		task.status = "in_progress"
+		active_tasks.append(task)
+		claimed.append(task)
+		claimed_food_counts[food_type] = already_claimed_count + 1
+	tasks_changed.emit()
+	return claimed
 
 func _can_worker_do_task(role: int, task_type: int) -> bool:
 	if role == ROLE_AUTO: return true
@@ -299,6 +329,44 @@ func _task_station_is_unavailable(task: Task) -> bool:
 		return false
 	if station.has_method("is_available"):
 		return not bool(station.call("is_available"))
+	return false
+
+func _delivery_task_has_ready_food(task: Task) -> bool:
+	return _delivery_ready_food_count(task) > 0
+
+func _delivery_ready_food_count(task: Task) -> int:
+	var food_table = task.args.get("food_table")
+	if food_table == null or not is_instance_valid(food_table):
+		return 0
+	var food_type := String(task.args.get("food_type", ""))
+	if food_table.has_method("has_food_item"):
+		var stored_items = food_table.get("_stored_food_items")
+		if stored_items is Array:
+			var count := 0
+			for item in stored_items:
+				if item != null and is_instance_valid(item) and _food_item_matches_delivery_type(item, food_type):
+					count += 1
+			return count
+		return 1 if bool(food_table.call("has_food_item", food_type)) else 0
+	var fallback_stored_items = food_table.get("_stored_food_items")
+	if fallback_stored_items is Array:
+		var fallback_count := 0
+		for item in fallback_stored_items:
+			if item != null and is_instance_valid(item) and _food_item_matches_delivery_type(item, food_type):
+				fallback_count += 1
+		return fallback_count
+	return 0
+
+func _food_item_matches_delivery_type(food_item: Node, food_type: String) -> bool:
+	if food_type.is_empty():
+		return true
+	if food_item.has_meta("food_type"):
+		return String(food_item.get_meta("food_type")) == food_type
+	var normalized_name := String(food_item.name).to_lower()
+	if normalized_name.contains("fries"):
+		return food_type == "fries"
+	if normalized_name.contains("burger"):
+		return food_type == "burger"
 	return false
 
 func _station_has_active_task(task: Task) -> bool:

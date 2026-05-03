@@ -24,11 +24,17 @@ func hire_worker() -> void:
 	var worker = worker_scene.instantiate() as CharacterBody3D
 	worker.name = "Worker_%d" % (workers.size() + 1)
 	get_parent().add_child(worker)
+	_assign_worker_stats(worker)
 	
 	var pos = _get_worker_spawn_position(workers.size())
 	
 	worker.global_position = pos
 	workers.append(worker)
+
+func _assign_worker_stats(worker: Node) -> void:
+	var ai := worker.get_node_or_null("WorkerAI") if worker != null else null
+	if ai != null and ai.has_method("generate_worker_stats"):
+		ai.call("generate_worker_stats")
 
 func _get_worker_spawn_position(spawn_index: int) -> Vector3:
 	var spawn_point := _resolve_worker_spawn_point()

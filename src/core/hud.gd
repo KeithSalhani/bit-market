@@ -98,7 +98,7 @@ func _create_worker_activity_ui() -> void:
 	workers_panel.anchor_bottom = 0.0
 	workers_panel.offset_left = 12.0
 	workers_panel.offset_top = 44.0
-	workers_panel.offset_right = 820.0
+	workers_panel.offset_right = 1040.0
 	workers_panel.offset_bottom = 320.0
 	add_child(workers_panel)
 
@@ -119,9 +119,10 @@ func _create_worker_activity_ui() -> void:
 	_add_worker_cell(header, "Task", 110.0)
 	_add_worker_cell(header, "Customer", 100.0)
 	_add_worker_cell(header, "Reason", 190.0)
+	_add_worker_cell(header, "Stats", 210.0)
 
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(780.0, 220.0)
+	scroll.custom_minimum_size = Vector2(1000.0, 220.0)
 	outer.add_child(scroll)
 
 	workers_list = VBoxContainer.new()
@@ -167,6 +168,7 @@ func _refresh_worker_activity_panel() -> void:
 		(row_data.get("task") as Label).text = str(status.get("task", "-"))
 		(row_data.get("customer") as Label).text = str(status.get("customer", "-"))
 		(row_data.get("reason") as Label).text = str(status.get("reason", "-"))
+		(row_data.get("stats") as Label).text = str(status.get("stats", "-"))
 
 func _worker_rows_need_rebuild(workers: Array[Node]) -> bool:
 	if workers.size() != _worker_rows.size():
@@ -200,7 +202,8 @@ func _rebuild_worker_activity_rows(workers: Array[Node]) -> void:
 			"action": _add_worker_cell(row, "-", 100.0),
 			"task": _add_worker_cell(row, "-", 110.0),
 			"customer": _add_worker_cell(row, "-", 100.0),
-			"reason": _add_worker_cell(row, "-", 190.0)
+			"reason": _add_worker_cell(row, "-", 190.0),
+			"stats": _add_worker_cell(row, "-", 210.0)
 		}
 		_worker_rows[worker] = row_data
 

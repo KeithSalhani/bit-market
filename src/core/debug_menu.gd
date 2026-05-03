@@ -111,6 +111,13 @@ func _refresh_workers() -> void:
 		var label = Label.new()
 		label.text = worker.name
 		hbox.add_child(label)
+		if ai.has_method("get_stats_summary"):
+			var stats_label := Label.new()
+			stats_label.text = String(ai.call("get_stats_summary"))
+			stats_label.custom_minimum_size = Vector2(260.0, 0.0)
+			stats_label.clip_text = true
+			stats_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+			hbox.add_child(stats_label)
 		
 		var ob = OptionButton.new()
 		var selected_index := 0

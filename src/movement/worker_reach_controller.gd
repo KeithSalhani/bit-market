@@ -17,12 +17,19 @@ var _ik: SkeletonIK3D
 var _target: Node3D
 var _ready_for_reach := false
 var _tip_bone_index := -1
+var _timing_scale := 1.0
 
 func _ready() -> void:
 	_ready_for_reach = _configure_ik()
 
 func can_reach() -> bool:
 	return _ready_for_reach
+
+func set_timing_scale(value: float) -> void:
+	_timing_scale = maxf(value, 0.05)
+
+func reset_timing_scale() -> void:
+	_timing_scale = 1.0
 
 func reach_to(target_position: Vector3) -> bool:
 	if not _ready_for_reach:
@@ -32,10 +39,10 @@ func reach_to(target_position: Vector3) -> bool:
 	_ik.start()
 	var rest_position := _get_rest_global_position()
 	_apply_target_pose(rest_position)
-	await _tween_target(target_position, reach_duration)
-	await get_tree().create_timer(hold_duration).timeout
+	await _tween_target(target_position, _scaled_duration(reach_duration))
+	await get_tree().create_timer(_scaled_duration(hold_duration)).timeout
 	reach_completed.emit(target_position)
-	await _tween_target(rest_position, reach_duration)
+	await _tween_target(rest_position, _scaled_duration(reach_duration))
 	_ik.stop()
 	return true
 
@@ -58,12 +65,12 @@ func pick_and_place(
 	if requested_hand_rotation_degrees is Vector3:
 		target_rotation_degrees = requested_hand_rotation_degrees
 	_apply_target_pose(rest_position, target_rotation_degrees)
-	await _tween_target(pickup_position, reach_duration, target_rotation_degrees)
-	await get_tree().create_timer(hold_duration).timeout
-	await _tween_target(place_position, place_duration, target_rotation_degrees)
-	await get_tree().create_timer(hold_duration).timeout
+	await _tween_target(pickup_position, _scaled_duration(reach_duration), target_rotation_degrees)
+	await get_tree().create_timer(_scaled_duration(hold_duration)).timeout
+	await _tween_target(place_position, _scaled_duration(place_duration), target_rotation_degrees)
+	await get_tree().create_timer(_scaled_duration(hold_duration)).timeout
 	reach_completed.emit(place_position)
-	await _tween_target(return_position, reach_duration, target_rotation_degrees)
+	await _tween_target(return_position, _scaled_duration(reach_duration), target_rotation_degrees)
 	_ik.stop()
 	return true
 
@@ -126,6 +133,9 @@ func _tween_target(target_position: Vector3, duration: float, target_rotation_de
 	tween.set_ease(Tween.EASE_IN_OUT)
 	tween.tween_property(_target, "global_transform", _get_target_transform(target_position, target_rotation_degrees), duration)
 	await tween.finished
+
+func _scaled_duration(duration: float) -> float:
+	return maxf(0.01, duration * _timing_scale)
 
 func _apply_target_pose(target_position: Vector3, target_rotation_degrees: Vector3 = hand_target_rotation_degrees) -> void:
 	_target.global_transform = _get_target_transform(target_position, target_rotation_degrees)

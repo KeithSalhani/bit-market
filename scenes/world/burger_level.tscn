@@ -79,7 +79,7 @@
 [ext_resource type="Texture2D" uid="uid://ckex15l6xbggo" path="res://assets/map/BurgerPiz_Shelf_fd.png" id="74_7cehg"]
 [ext_resource type="Texture2D" uid="uid://bwu4h6j7ow014" path="res://assets/map/BurgerPiz_Shelf_FR.png" id="75_8w8v7"]
 [ext_resource type="PackedScene" uid="uid://dwg0tjvkpor6v" path="res://scenes/props/misc/crt_tv.tscn" id="81_1ecrv"]
-[ext_resource type="PackedScene" uid="uid://btyk7w4msy1ti" path="res://scenes/characters/boss_npc.tscn" id="82_o25jv"]
+[ext_resource type="PackedScene" path="res://scenes/characters/boss_npc.tscn" id="82_o25jv"]
 [ext_resource type="Script" uid="uid://c4fu1gvqdnadj" path="res://src/core/customer_manager.gd" id="83_pfjsg"]
 [ext_resource type="Script" uid="uid://xb0ql6d2eqoc" path="res://src/core/employee_manager.gd" id="84_xt107"]
 
@@ -33532,4 +33532,4 @@ spawn_point_path = NodePath("../BurgerPiz2/Door_F_001")
 script = ExtResource("84_xt107")
 
 [node name="BossNpc" parent="." unique_id=3959846 instance=ExtResource("82_o25jv")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.48465478, 0.7601372, 11.608576)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.48465478, 0.43350935, 11.608576)

@@ -60,7 +60,7 @@ func get_look_target() -> Vector3:
 		return (get_parent() as Node3D).global_position
 	return Vector3.ZERO
 
-func fry_fries(worker: Node, reach_controller: Node = null) -> Array[Node3D]:
+func fry_fries(worker: Node, reach_controller: Node = null, duration_multiplier: float = 1.0) -> Array[Node3D]:
 	var outputs: Array[Node3D] = []
 	if _is_busy and _reserved_worker != worker:
 		return outputs
@@ -86,7 +86,7 @@ func fry_fries(worker: Node, reach_controller: Node = null) -> Array[Node3D]:
 		await reach_controller.call("reach_to", _handle_positions[index].global_position)
 		await _move_basket(index, _basket_start_positions[index] + Vector3.DOWN * basket_lower_offset)
 
-	await get_tree().create_timer(cook_seconds).timeout
+	await get_tree().create_timer(cook_seconds * maxf(duration_multiplier, 0.05)).timeout
 
 	for index in range(_baskets.size()):
 		await reach_controller.call("reach_to", _handle_positions[index].global_position)
