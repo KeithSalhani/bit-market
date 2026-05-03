@@ -205,7 +205,7 @@ func _append_order_lines(lines: PackedStringArray, tasks: Array, status_label: S
 	for task in tasks:
 		if lines.size() >= max_order_lines:
 			return
-		if task == null:
+		if task == null or not is_instance_valid(task):
 			continue
 		var food_type := String(task.args.get("food_type", ""))
 		if food_type.is_empty() and task.type != 0:
@@ -235,7 +235,9 @@ func _short_task_label(task_type: int) -> String:
 
 
 func _node_label(value: Variant) -> String:
-	if value is Node and is_instance_valid(value):
+	if value == null or not is_instance_valid(value):
+		return "-"
+	if value is Node:
 		return String((value as Node).name)
 	return "-"
 

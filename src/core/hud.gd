@@ -9,9 +9,13 @@ extends CanvasLayer
 
 var spawn_customer_button: Button
 var workers_button: Button
+var boss_button: Button
 var workers_panel: PanelContainer
 var workers_list: VBoxContainer
+var boss_panel: PanelContainer
+var boss_text: RichTextLabel
 var _worker_refresh_timer: Timer
+var _boss_refresh_timer: Timer
 var _worker_rows: Dictionary = {}
 
 func _ready() -> void:
@@ -27,6 +31,7 @@ func _ready() -> void:
 	hire_button.connect("pressed", _on_hire_button_pressed)
 	_create_spawn_customer_button()
 	_create_worker_activity_ui()
+	_create_boss_manager_ui()
 	
 	_on_money_changed(rm.money)
 	_on_time_changed(rm.time_of_day)
@@ -135,6 +140,113 @@ func _create_worker_activity_ui() -> void:
 	_worker_refresh_timer.timeout.connect(_refresh_worker_activity_panel)
 	add_child(_worker_refresh_timer)
 	_refresh_worker_activity_panel()
+
+func _create_boss_manager_ui() -> void:
+	boss_button = Button.new()
+	boss_button.text = "Boss"
+	boss_button.toggle_mode = true
+	boss_button.pressed.connect(_on_boss_button_pressed)
+	hud_row.add_child(boss_button)
+
+	boss_panel = PanelContainer.new()
+	boss_panel.visible = false
+	boss_panel.anchor_left = 0.0
+	boss_panel.anchor_top = 0.0
+	boss_panel.anchor_right = 0.0
+	boss_panel.anchor_bottom = 0.0
+	boss_panel.offset_left = 12.0
+	boss_panel.offset_top = 330.0
+	boss_panel.offset_right = 720.0
+	boss_panel.offset_bottom = 620.0
+	add_child(boss_panel)
+
+	var outer := VBoxContainer.new()
+	outer.add_theme_constant_override("separation", 6)
+	boss_panel.add_child(outer)
+
+	var title := Label.new()
+	title.text = "Boss Manager"
+	outer.add_child(title)
+
+	boss_text = RichTextLabel.new()
+	boss_text.custom_minimum_size = Vector2(680.0, 240.0)
+	boss_text.fit_content = false
+	boss_text.scroll_active = true
+	boss_text.bbcode_enabled = false
+	outer.add_child(boss_text)
+
+	_boss_refresh_timer = Timer.new()
+	_boss_refresh_timer.wait_time = 0.5
+	_boss_refresh_timer.autostart = true
+	_boss_refresh_timer.timeout.connect(_refresh_boss_panel)
+	add_child(_boss_refresh_timer)
+	_refresh_boss_panel()
+
+func _on_boss_button_pressed() -> void:
+	boss_panel.visible = boss_button.button_pressed
+	if boss_panel.visible:
+		_refresh_boss_panel()
+
+func _refresh_boss_panel() -> void:
+	if boss_text == null:
+		return
+	var boss_ai := _resolve_boss_ai()
+	if boss_ai == null or not boss_ai.has_method("get_status"):
+		boss_text.text = "Boss AI not found."
+		return
+	var status: Dictionary = boss_ai.call("get_status")
+	var lines := PackedStringArray()
+	lines.append("Destination: %s" % String(status.get("destination", "-")))
+	lines.append("LLM: %s" % ("enabled" if bool(status.get("llm_enabled", false)) else "disabled"))
+	lines.append("Known zones: %s" % _join_packed(status.get("known_zones", PackedStringArray())))
+	lines.append("Stale/unknown zones: %s" % _join_packed(status.get("stale_zones", PackedStringArray())))
+	lines.append("Last action: %s" % String(status.get("last_action", "-")))
+	var rejected := String(status.get("rejected_reason", ""))
+	if not rejected.is_empty():
+		lines.append("Rejected: %s" % rejected)
+	var failure := String(status.get("failure", ""))
+	if not failure.is_empty():
+		lines.append("Failure: %s" % failure)
+	var speech := String(status.get("speech", ""))
+	if not speech.is_empty():
+		lines.append("Speech: %s" % speech)
+	lines.append("")
+	lines.append("Latest observations:")
+	var latest: Array = status.get("latest_observations", [])
+	if latest.is_empty():
+		lines.append("- none")
+	else:
+		for observation in latest:
+			if not (observation is Dictionary):
+				continue
+			var entry := observation as Dictionary
+			lines.append("- %s: %s" % [String(entry.get("zone", "-")), "; ".join(entry.get("facts", []))])
+	var raw_json := String(status.get("raw_json", ""))
+	if not raw_json.is_empty():
+		lines.append("")
+		lines.append("Raw LLM JSON:")
+		lines.append(raw_json)
+	boss_text.text = "\n".join(lines)
+
+func _resolve_boss_ai() -> Node:
+	var level := get_tree().current_scene
+	if level == null:
+		return null
+	var boss := level.find_child("BossNpc", true, false)
+	if boss == null:
+		return null
+	return boss.get_node_or_null("BossAI")
+
+func _join_packed(value: Variant) -> String:
+	if value is PackedStringArray:
+		var packed := value as PackedStringArray
+		return ", ".join(packed) if not packed.is_empty() else "-"
+	if value is Array:
+		var parts := PackedStringArray()
+		for item in value:
+			parts.append(String(item))
+		return ", ".join(parts) if not parts.is_empty() else "-"
+	return "-"
 
 func _on_workers_button_pressed() -> void:
 	workers_panel.visible = workers_button.button_pressed

@@ -31,6 +31,16 @@ func hire_worker() -> void:
 	worker.global_position = pos
 	workers.append(worker)
 
+func fire_worker(worker_name: String) -> bool:
+	if workers.size() <= 1:
+		return false
+	for worker in workers:
+		if worker != null and is_instance_valid(worker) and String(worker.name) == worker_name:
+			workers.erase(worker)
+			worker.queue_free()
+			return true
+	return false
+
 func _assign_worker_stats(worker: Node) -> void:
 	var ai := worker.get_node_or_null("WorkerAI") if worker != null else null
 	if ai != null and ai.has_method("generate_worker_stats"):

@@ -31,6 +31,7 @@ var current_customers: int = 0
 var _register_slots: Array[Dictionary] = []
 var _register_queue: Array[Node] = []
 var _queue_markers: Dictionary = {}
+var _register_rebalance_timer := 0.0
 
 func _ready() -> void:
 	var rm = get_node("/root/RestaurantManager")
@@ -49,6 +50,13 @@ func _on_open_state_changed(is_open: bool) -> void:
 		_start_timer()
 	else:
 		_timer.stop()
+
+func _process(delta: float) -> void:
+	_register_rebalance_timer -= delta
+	if _register_rebalance_timer > 0.0:
+		return
+	_register_rebalance_timer = 0.75
+	_rebalance_register_slots_to_staffed_registers()
 
 func _start_timer() -> void:
 	_timer.start(randf_range(spawn_interval_min, spawn_interval_max))
@@ -177,6 +185,9 @@ func _assign_open_registers() -> void:
 		if marker == null or not is_instance_valid(marker):
 			i += 1
 			continue
+		if not _register_slot_can_accept_customer(i):
+			i += 1
+			continue
 		var customer_ai := _register_queue.pop_front() as Node
 		if customer_ai == null or not is_instance_valid(customer_ai):
 			continue
@@ -184,7 +195,105 @@ func _assign_open_registers() -> void:
 		_remove_queue_marker(customer_ai)
 		if customer_ai.has_method("go_to_register"):
 			customer_ai.call("go_to_register", marker)
-		i += 1
+			i += 1
+
+func _rebalance_register_slots_to_staffed_registers() -> void:
+	_prune_register_state()
+	if _register_slots.is_empty():
+		return
+	var staffed_indices := _get_staffed_register_slot_indices()
+	if staffed_indices.is_empty():
+		return
+
+	var moved_any := false
+	for i in _register_slots.size():
+		if staffed_indices.has(i):
+			continue
+		var customer_ai := _register_slots[i].get("customer") as Node
+		if customer_ai == null or not is_instance_valid(customer_ai):
+			_register_slots[i]["customer"] = null
+			continue
+		if _customer_has_active_register_task(customer_ai):
+			continue
+		_remove_pending_register_tasks_for_customer(customer_ai)
+		_register_slots[i]["customer"] = null
+		if not _register_queue.has(customer_ai):
+			_register_queue.push_front(customer_ai)
+		moved_any = true
+
+	if moved_any:
+		_assign_open_registers()
+		_update_register_queue_positions()
+
+func _register_slot_can_accept_customer(slot_index: int) -> bool:
+	var staffed_indices := _get_staffed_register_slot_indices()
+	if staffed_indices.is_empty():
+		return true
+	return staffed_indices.has(slot_index)
+
+func _get_staffed_register_slot_indices() -> Array[int]:
+	var indices: Array[int] = []
+	var task_manager := get_node_or_null("/root/TaskManager")
+	if task_manager == null or not task_manager.has_method("get_assigned_station_for_worker"):
+		return indices
+	for worker in get_tree().get_nodes_in_group("worker_npc"):
+		if worker == null or not is_instance_valid(worker):
+			continue
+		var ai := worker.get_node_or_null("WorkerAI")
+		if ai == null or int(ai.get("job_role")) != 1:
+			continue
+		var assigned_station := task_manager.call("get_assigned_station_for_worker", worker, 1) as Node
+		var assigned_root := _get_register_root(assigned_station)
+		if assigned_root == null:
+			continue
+		for i in _register_slots.size():
+			var marker := _register_slots[i].get("marker") as Node
+			if marker != null and is_instance_valid(marker) and _get_register_root(marker) == assigned_root and not indices.has(i):
+				indices.append(i)
+	return indices
+
+func _customer_has_active_register_task(customer_ai: Node) -> bool:
+	var task_manager := get_node_or_null("/root/TaskManager")
+	if task_manager == null:
+		return false
+	var active_tasks: Variant = task_manager.get("active_tasks")
+	if not (active_tasks is Array):
+		return false
+	for task in active_tasks as Array:
+		if task == null or not is_instance_valid(task):
+			continue
+		if int(task.get("type")) == 0 and task.get("args").get("customer") == customer_ai:
+			return true
+	return false
+
+func _remove_pending_register_tasks_for_customer(customer_ai: Node) -> void:
+	var task_manager := get_node_or_null("/root/TaskManager")
+	if task_manager == null:
+		return
+	var pending_tasks: Variant = task_manager.get("pending_tasks")
+	if not (pending_tasks is Array):
+		return
+	var changed := false
+	var i := (pending_tasks as Array).size() - 1
+	while i >= 0:
+		var task = (pending_tasks as Array)[i]
+		if task != null and is_instance_valid(task) and int(task.get("type")) == 0 and task.get("args").get("customer") == customer_ai:
+			(pending_tasks as Array).remove_at(i)
+			changed = true
+		i -= 1
+	if changed and task_manager.has_signal("tasks_changed"):
+		task_manager.tasks_changed.emit()
+
+func _get_register_root(node: Node) -> Node:
+	if node == null or not is_instance_valid(node):
+		return null
+	var current := node
+	while current != null:
+		var node_name := String(current.name)
+		if node_name.begins_with("CashRegister_") and not node_name.contains("_Approach") and not node_name.contains("_Opposite"):
+			return current
+		current = current.get_parent()
+	return null
 
 func _update_register_queue_positions() -> void:
 	_prune_register_state()

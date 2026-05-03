@@ -648,7 +648,7 @@ func _set_task_status(task: Object, action: String, reason: String) -> void:
 	var tm = get_node_or_null("/root/TaskManager")
 	current_task_type_label = str(tm.call("get_task_type_label", task.type)) if tm != null and tm.has_method("get_task_type_label") else str(task.type)
 	var customer = task.args.get("customer")
-	if customer is Node and is_instance_valid(customer):
+	if customer != null and is_instance_valid(customer) and customer is Node:
 		target_customer_label = String((customer as Node).name)
 		target_customer_path = String((customer as Node).get_path())
 	else:

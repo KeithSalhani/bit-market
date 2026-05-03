@@ -1,0 +1,8 @@
+{
+  "provider": "gemini",
+  "model": "gemini-flash-latest",
+  "api_key": "YOUR_GEMINI_API_KEY",
+  "timeout_seconds": 12,
+  "enabled": false,
+  "debug_raw_json": false
+}

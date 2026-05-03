@@ -37,8 +37,11 @@ var _full_label: Label3D
 var _using_explicit_reach_target := false
 var _is_busy := false
 var _reserved_worker: Node = null
+static var _shared_cooked_meat_stock := 0
 
 func _ready() -> void:
+	if cooked_meat_stock > 0:
+		_shared_cooked_meat_stock = maxi(_shared_cooked_meat_stock, cooked_meat_stock)
 	_prepare_storage_visuals()
 
 func is_available() -> bool:
@@ -238,25 +241,27 @@ func pick_finished_burger_for_transport(worker: Node) -> Node3D:
 	return burger
 
 func stock_cooked_meat(amount: int) -> void:
-	cooked_meat_stock = maxi(cooked_meat_stock + amount, 0)
+	_shared_cooked_meat_stock = maxi(_shared_cooked_meat_stock + amount, 0)
+	cooked_meat_stock = _shared_cooked_meat_stock
 
 func get_cooked_meat_stock() -> int:
-	return cooked_meat_stock
+	return _shared_cooked_meat_stock
 
 func has_cooked_meat() -> bool:
-	return cooked_meat_stock > 0
+	return _shared_cooked_meat_stock > 0
 
 func get_grill_station() -> Node3D:
 	return _get_grill_station()
 
 func consume_cooked_meat(amount := 1) -> bool:
-	if cooked_meat_stock < amount:
+	if _shared_cooked_meat_stock < amount:
 		return false
-	cooked_meat_stock -= amount
+	_shared_cooked_meat_stock -= amount
+	cooked_meat_stock = _shared_cooked_meat_stock
 	return true
 
 func ensure_cooked_meat(worker: Node, reach_controller: Node = null) -> bool:
-	if cooked_meat_stock > 0:
+	if _shared_cooked_meat_stock > 0:
 		return true
 
 	# We no longer want the prep station to forcefully cook the meat itself.
