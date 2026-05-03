@@ -1,5 +1,8 @@
 extends Node3D
 
+const VFX := preload("res://src/world/restaurant_vfx_factory.gd")
+const MEAT_SCENE := preload("res://scenes/props/food/meat.tscn")
+
 @export var entrance_point_path: NodePath = ^"WorkerGrillEntrancePoint"
 @export var snap_point_path: NodePath = ^"WorkerGrillSnapPoint"
 @export var exit_point_path: NodePath = ^"WorkerGrillExitPoint"
@@ -11,11 +14,15 @@ extends Node3D
 @export var cook_seconds := 6.0
 @export var grilled_meat_scale := Vector3(0.001, 0.001, 0.001)
 @export var grilled_meat_spacing := Vector2(0.08, 0.08)
-
-const MEAT_SCENE := preload("res://scenes/props/food/meat.tscn")
+@export var station_vfx_enabled := true
+@export_range(0.25, 2.0, 0.05) var particle_quality_scale := 1.0
+@export var heat_shimmer_enabled := true
 
 var _grill_meat_props: Array[Node3D] = []
 var _smoke_particles: Array[GPUParticles3D] = []
+var _ember_particles: Array[GPUParticles3D] = []
+var _heat_shimmer: MeshInstance3D
+var _cook_light: OmniLight3D
 var _is_busy := false
 var _reserved_worker: Node = null
 
@@ -98,15 +105,19 @@ func cook_meat(worker: Node, raw_meat_pickup_position: Vector3, reach_controller
 		await reach_controller.call("reach_to", raw_meat_pickup_position)
 		await reach_controller.call("reach_to", place_point.global_position)
 
+	_spawn_place_burst(place_point.global_position)
 	_set_grill_meat_visible(true)
 	_set_smoke_emitting(true)
+	_set_station_vfx_active(true)
 	_set_grill_sound_playing(true)
 	await get_tree().create_timer(cook_seconds * maxf(duration_multiplier, 0.05)).timeout
 	_set_grill_sound_playing(false)
 	_set_smoke_emitting(false)
+	_set_station_vfx_active(false)
 
 	await reach_controller.call("reach_to", pickup_point.global_position)
 	_set_grill_meat_visible(false)
+	_spawn_place_burst(pickup_point.global_position, Color(1.0, 0.82, 0.38, 0.72))
 	release_reservation(worker)
 	return batch_size
 
@@ -132,6 +143,7 @@ func _prepare_grill_visuals() -> void:
 	var smoke_origin := get_node_or_null(smoke_origin_path) as Node3D
 	if smoke_origin != null:
 		_create_smoke_particles(smoke_origin)
+		_create_station_vfx(smoke_origin)
 
 func _set_grill_meat_visible(value: bool) -> void:
 	for prop in _grill_meat_props:
@@ -159,22 +171,69 @@ func _create_smoke_particles(parent: Node3D) -> void:
 	var names := ["TopLeft", "TopRight", "BottomLeft", "BottomRight"]
 	var particle_count: int = mini(batch_size, offsets.size())
 	for index in range(particle_count):
-		var particles := GPUParticles3D.new()
-		particles.name = "GrillSmoke_%s" % names[index]
-		particles.amount = 12
-		particles.lifetime = 1.4
-		particles.one_shot = false
-		particles.emitting = false
-		particles.position = offsets[index]
-		particles.draw_pass_1 = _make_smoke_mesh()
-		particles.process_material = _make_smoke_material()
-		parent.add_child(particles)
-		_smoke_particles.append(particles)
+		var particles := VFX.create_continuous_particles(
+			parent,
+			"GrillSmoke_%s" % names[index],
+			offsets[index],
+			Color(0.78, 0.78, 0.72, 0.42),
+			int(14.0 * particle_quality_scale),
+			1.45,
+			Vector3(0.05, 0.035, 0.05),
+			0.14,
+			0.34,
+			0.5,
+			1.2,
+			Vector3(0.0, 0.35, 0.0),
+			false,
+			0.035
+		)
+		if particles != null:
+			_smoke_particles.append(particles)
 
 func _set_smoke_emitting(value: bool) -> void:
-	for particles in _smoke_particles:
-		if particles != null and is_instance_valid(particles):
-			particles.emitting = value
+	VFX.set_particles_emitting(_smoke_particles, value)
+
+func _create_station_vfx(parent: Node3D) -> void:
+	if not station_vfx_enabled:
+		return
+
+	var embers := VFX.create_continuous_particles(
+		parent,
+		"GrillEmbers",
+		Vector3.ZERO,
+		Color(1.0, 0.28, 0.08, 0.74),
+		int(16.0 * particle_quality_scale),
+		0.55,
+		Vector3(0.26, 0.025, 0.18),
+		0.1,
+		0.3,
+		0.2,
+		0.62,
+		Vector3(0.0, 0.18, 0.0),
+		true,
+		0.012
+	)
+	if embers != null:
+		_ember_particles.append(embers)
+
+	if heat_shimmer_enabled:
+		_heat_shimmer = VFX.create_heat_shimmer(parent, "GrillHeatShimmer", Vector3(0.0, 0.22, 0.0), Vector2(0.8, 0.62))
+	_cook_light = VFX.create_flicker_light(parent, "GrillCookLight", Vector3(0.0, 0.24, 0.0), Color(1.0, 0.42, 0.12, 1.0), 0.0, 1.6)
+
+func _set_station_vfx_active(value: bool) -> void:
+	if not station_vfx_enabled:
+		return
+	VFX.set_particles_emitting(_ember_particles, value)
+	VFX.set_node_visible(_heat_shimmer, value and heat_shimmer_enabled)
+	if _cook_light != null:
+		_cook_light.light_energy = 0.55 if value else 0.0
+
+func _spawn_place_burst(global_position: Vector3, color: Color = Color(1.0, 0.42, 0.14, 0.8)) -> void:
+	if not station_vfx_enabled:
+		return
+	VFX.spawn_burst(self, global_position + Vector3.UP * 0.05, color, int(18.0 * particle_quality_scale), 0.4, 0.04, 0.35, 0.85, 0.18, 0.56, true, 0.014)
+	if _cook_light != null:
+		VFX.pulse_light(_cook_light, 1.1, 0.35)
 
 func _set_grill_sound_playing(value: bool) -> void:
 	var grill_sound := _get_grill_sound()

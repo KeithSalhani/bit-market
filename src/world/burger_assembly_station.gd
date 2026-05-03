@@ -1,5 +1,7 @@
 extends Node3D
 
+const VFX := preload("res://src/world/restaurant_vfx_factory.gd")
+
 @export var snap_point_path: NodePath = ^"WorkerPrepSnapPoint"
 @export var entrance_point_path: NodePath = ^"WorkerPrepEntrancePoint"
 @export var exit_point_path: NodePath = ^"WorkerPrepExitPoint"
@@ -18,6 +20,8 @@ extends Node3D
 @export var prep_hand_target_rotation_degrees := Vector3(-90.0, 0.0, 90.0)
 @export var burger_storage_spacing := Vector2(0.22, 0.22)
 @export var default_recipe := PackedStringArray(["meat", "cheese", "pickles", "onion", "lettuce"])
+@export var station_vfx_enabled := true
+@export_range(0.25, 2.0, 0.05) var particle_quality_scale := 1.0
 
 const FOOD_SCENES := {
 	"bottom_bun": preload("res://scenes/props/food/bottom_bun.tscn"),
@@ -285,6 +289,7 @@ func _spawn_layer(layer_name: String, layer_index: int) -> void:
 	layer.name = layer_name
 	_current_burger.add_child(layer)
 	layer.transform = _get_layer_transform(layer_index, layer_name)
+	_spawn_ingredient_burst(layer_name, _get_burger_place_position(layer_index))
 
 func _release_auto_reservation(worker: Node, auto_reserved: bool) -> void:
 	if auto_reserved:
@@ -307,6 +312,7 @@ func _replace_with_finished_burger(assembly_point: Node3D) -> void:
 	finished_burger.global_rotation = Vector3.ZERO
 	finished_burger.scale *= finished_burger_scale_multiplier
 	_current_burger = finished_burger
+	_spawn_finished_burger_vfx(assembly_point.global_position)
 
 func _store_finished_burger(worker: Node, reach_controller: Node) -> bool:
 	if _current_burger == null or not is_instance_valid(_current_burger):
@@ -332,6 +338,7 @@ func _store_finished_burger(worker: Node, reach_controller: Node) -> bool:
 	finished_burger.global_position = storage_position
 	finished_burger.global_rotation = Vector3.ZERO
 	_stored_burgers[slot_index] = finished_burger
+	_spawn_finished_burger_vfx(storage_position)
 	if _current_burger == finished_burger:
 		_current_burger = null
 	return true
@@ -488,3 +495,30 @@ func _clear_current_burger() -> void:
 	if _current_burger != null and is_instance_valid(_current_burger):
 		_current_burger.queue_free()
 		_current_burger = null
+
+func _spawn_ingredient_burst(layer_name: String, global_position: Vector3) -> void:
+	if not station_vfx_enabled or not is_inside_tree():
+		return
+	var color := _ingredient_vfx_color(layer_name)
+	VFX.spawn_burst(self, global_position + Vector3.UP * 0.03, color, int(12.0 * particle_quality_scale), 0.32, 0.035, 0.18, 0.55, 0.12, 0.42, true, 0.01)
+
+func _spawn_finished_burger_vfx(global_position: Vector3) -> void:
+	if not station_vfx_enabled or not is_inside_tree():
+		return
+	VFX.spawn_burst(self, global_position + Vector3.UP * 0.12, Color(1.0, 0.82, 0.34, 0.72), int(22.0 * particle_quality_scale), 0.55, 0.08, 0.24, 0.72, 0.18, 0.62, true, 0.014)
+
+func _ingredient_vfx_color(layer_name: String) -> Color:
+	match layer_name:
+		"meat":
+			return Color(1.0, 0.34, 0.12, 0.72)
+		"cheese":
+			return Color(1.0, 0.86, 0.2, 0.7)
+		"lettuce":
+			return Color(0.45, 1.0, 0.28, 0.62)
+		"pickles":
+			return Color(0.55, 0.95, 0.24, 0.62)
+		"onion":
+			return Color(0.88, 0.78, 1.0, 0.58)
+		"tomato":
+			return Color(1.0, 0.18, 0.14, 0.64)
+	return Color(1.0, 0.72, 0.34, 0.58)

@@ -1,5 +1,7 @@
 extends Node
 
+const VFX := preload("res://src/world/restaurant_vfx_factory.gd")
+
 @export var cook_seconds := 6.0
 @export var basket_lower_offset := 0.18
 @export var fries_scene: PackedScene = preload("res://scenes/props/food/fries.tscn")
@@ -10,6 +12,9 @@ extends Node
 @export var raw_fries_scale := Vector3(0.35, 0.35, 0.35)
 @export var bagged_fries_scale := Vector3(0.45, 0.45, 0.45)
 @export var bagged_fries_output_count := 1
+@export var station_vfx_enabled := true
+@export_range(0.25, 2.0, 0.05) var particle_quality_scale := 1.0
+@export var heat_shimmer_enabled := true
 
 var _is_busy := false
 var _reserved_worker: Node
@@ -22,6 +27,10 @@ var _fries_positions: Array[Node3D] = []
 var _basket_start_positions: Array[Vector3] = []
 var _raw_fries_props: Array[Node3D] = []
 var _oil_particles: Array[GPUParticles3D] = []
+var _steam_particles: Array[GPUParticles3D] = []
+var _spark_particles: Array[GPUParticles3D] = []
+var _heat_shimmer: MeshInstance3D
+var _cook_light: OmniLight3D
 
 func _ready() -> void:
 	_resolve_station_nodes()
@@ -85,16 +94,20 @@ func fry_fries(worker: Node, reach_controller: Node = null, duration_multiplier:
 	for index in range(_baskets.size()):
 		await reach_controller.call("reach_to", _handle_positions[index].global_position)
 		await _move_basket(index, _basket_start_positions[index] + Vector3.DOWN * basket_lower_offset)
+		_spawn_oil_burst(_fries_positions[index].global_position)
 
 	_set_particles_emitting(oil_particles_enabled)
+	_set_station_vfx_active(true)
 	_set_fryer_sound_playing(true)
 	await get_tree().create_timer(cook_seconds * maxf(duration_multiplier, 0.05)).timeout
 	_set_fryer_sound_playing(false)
 	_set_particles_emitting(false)
+	_set_station_vfx_active(false)
 
 	for index in range(_baskets.size()):
 		await reach_controller.call("reach_to", _handle_positions[index].global_position)
 		await _move_basket(index, _basket_start_positions[index])
+		_spawn_oil_burst(_fries_positions[index].global_position, Color(1.0, 0.72, 0.18, 0.72))
 
 	_clear_raw_fries()
 	_set_oil_visible(false)
@@ -130,6 +143,7 @@ func _prepare_visuals() -> void:
 	_apply_oil_material()
 	_set_oil_visible(false)
 	_create_oil_particles()
+	_create_station_vfx()
 	_set_particles_emitting(false)
 
 func _set_oil_visible(value: bool) -> void:
@@ -233,9 +247,69 @@ func _create_oil_particles() -> void:
 	_oil_particles.append(sizzle)
 
 func _set_particles_emitting(value: bool) -> void:
-	for particles in _oil_particles:
-		if particles != null and is_instance_valid(particles):
-			particles.emitting = value
+	VFX.set_particles_emitting(_oil_particles, value)
+
+func _create_station_vfx() -> void:
+	if not station_vfx_enabled or _oil == null:
+		return
+
+	var steam := VFX.create_continuous_particles(
+		_oil,
+		"FryerSteamWisps",
+		Vector3.ZERO,
+		Color(0.86, 0.86, 0.78, 0.34),
+		int(42.0 * particle_quality_scale),
+		1.25,
+		Vector3(0.34, 0.025, 0.2),
+		0.12,
+		0.36,
+		0.35,
+		1.1,
+		Vector3(0.0, 0.42, 0.0),
+		false,
+		0.026
+	)
+	if steam != null:
+		_steam_particles.append(steam)
+
+	var sparks := VFX.create_continuous_particles(
+		_oil,
+		"FryerHotFlecks",
+		Vector3.ZERO,
+		Color(1.0, 0.72, 0.18, 0.68),
+		int(14.0 * particle_quality_scale),
+		0.35,
+		Vector3(0.32, 0.02, 0.18),
+		0.08,
+		0.26,
+		0.2,
+		0.5,
+		Vector3(0.0, 0.12, 0.0),
+		true,
+		0.01
+	)
+	if sparks != null:
+		_spark_particles.append(sparks)
+
+	if heat_shimmer_enabled:
+		_heat_shimmer = VFX.create_heat_shimmer(_oil, "FryerHeatShimmer", Vector3(0.0, 0.16, 0.0), Vector2(0.75, 0.48))
+	_cook_light = VFX.create_flicker_light(_oil, "FryerCookLight", Vector3(0.0, 0.16, 0.0), Color(1.0, 0.62, 0.16, 1.0), 0.0, 1.35)
+
+func _set_station_vfx_active(value: bool) -> void:
+	if not station_vfx_enabled:
+		return
+	VFX.set_particles_emitting(_steam_particles, value)
+	VFX.set_particles_emitting(_spark_particles, value)
+	VFX.set_node_visible(_heat_shimmer, value and heat_shimmer_enabled)
+	if _cook_light != null:
+		_cook_light.light_energy = 0.42 if value else 0.0
+
+func _spawn_oil_burst(global_position: Vector3, color: Color = Color(1.0, 0.88, 0.26, 0.72)) -> void:
+	if not station_vfx_enabled or _oil == null:
+		return
+	VFX.spawn_burst(_oil, global_position + Vector3.UP * 0.04, color, int(20.0 * particle_quality_scale), 0.36, 0.06, 0.28, 0.95, 0.16, 0.55, true, 0.012)
+	if _cook_light != null:
+		VFX.pulse_light(_cook_light, 0.9, 0.3)
 
 func _set_fryer_sound_playing(value: bool) -> void:
 	var fryer_sound := _get_fryer_sound()

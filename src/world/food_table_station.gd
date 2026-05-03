@@ -1,9 +1,13 @@
 extends Node
 
+const VFX := preload("res://src/world/restaurant_vfx_factory.gd")
+
 @export var burger_storage_point_path: NodePath = ^"Shelf_C_001/BurgerStoragePoint"
 @export var burger_capacity := 8
 @export var burger_column_spacing := 0.18
 @export var burger_row_spacing := 0.16
+@export var station_vfx_enabled := true
+@export_range(0.25, 2.0, 0.05) var particle_quality_scale := 1.0
 
 var _stored_food_items: Array[Node3D] = []
 
@@ -44,6 +48,7 @@ func get_first_food_item_by_type(food_type: String = "") -> Node3D:
 		var food_item := _stored_food_items[index]
 		if food_item != null and is_instance_valid(food_item) and _food_item_matches_type(food_item, food_type):
 			_stored_food_items[index] = null
+			_spawn_food_table_burst(food_item.global_position, _food_vfx_color(_infer_food_type(food_item)))
 			return food_item
 	return null
 
@@ -91,6 +96,7 @@ func store_food_item(food_item: Node3D, food_type: String = "") -> bool:
 		_apply_global_scale(food_item, stored_global_scale)
 	food_item.visible = true
 	_stored_food_items[slot_index] = food_item
+	_spawn_food_table_burst(food_item.global_position, _food_vfx_color(food_type))
 	return true
 
 func _food_item_matches_type(food_item: Node3D, food_type: String) -> bool:
@@ -164,3 +170,19 @@ func _get_adjusted_local_scale(local_scale: float, current_global_scale: float, 
 	if absf(current_global_scale) <= 0.0001:
 		return local_scale
 	return local_scale * target_global_scale / current_global_scale
+
+func _spawn_food_table_burst(global_position: Vector3, color: Color) -> void:
+	if not station_vfx_enabled:
+		return
+	var storage_point := get_burger_storage_point()
+	if storage_point == null:
+		return
+	VFX.spawn_burst(storage_point, global_position + Vector3.UP * 0.08, color, int(16.0 * particle_quality_scale), 0.42, 0.06, 0.16, 0.5, 0.14, 0.5, true, 0.012)
+
+func _food_vfx_color(food_type: String) -> Color:
+	match food_type:
+		"fries":
+			return Color(1.0, 0.82, 0.22, 0.7)
+		"burger":
+			return Color(1.0, 0.52, 0.18, 0.68)
+	return Color(1.0, 0.82, 0.38, 0.62)
