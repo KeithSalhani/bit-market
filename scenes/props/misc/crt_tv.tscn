@@ -54,6 +54,7 @@ shadow_mesh = SubResource("ArrayMesh_sh0cs")
 [node name="Sketchfab_model" type="Node3D" unique_id=1693117817]
 transform = Transform3D(1, 0, 0, 0, 2.220446e-16, 1, 0, -1, 2.220446e-16, 0, 0, 0)
 script = ExtResource("4_u5n3q")
+display_mode = "Orders"
 
 [node name="root" type="Node3D" parent="." unique_id=1238703474]
 

@@ -79,6 +79,7 @@
 [ext_resource type="Texture2D" uid="uid://ckex15l6xbggo" path="res://assets/map/BurgerPiz_Shelf_fd.png" id="74_7cehg"]
 [ext_resource type="Texture2D" uid="uid://bwu4h6j7ow014" path="res://assets/map/BurgerPiz_Shelf_FR.png" id="75_8w8v7"]
 [ext_resource type="PackedScene" uid="uid://dwg0tjvkpor6v" path="res://scenes/props/misc/crt_tv.tscn" id="81_1ecrv"]
+[ext_resource type="PackedScene" path="res://scenes/characters/boss_npc.tscn" id="82_o25jv"]
 [ext_resource type="Script" uid="uid://c4fu1gvqdnadj" path="res://src/core/customer_manager.gd" id="83_pfjsg"]
 [ext_resource type="Script" uid="uid://xb0ql6d2eqoc" path="res://src/core/employee_manager.gd" id="84_xt107"]
 
@@ -12301,43 +12302,6 @@ blend_shape_mode = 0
 shadow_mesh = SubResource("ArrayMesh_h0m14")
 
 [sub_resource type="ConcavePolygonShape3D" id="ConcavePolygonShape3D_3htrp"]
-data = PackedVector3Array(-0.85429996, -0.69589996, -0.3809, -0.8552, 0.3093, -0.4337, -0.8552, 0.3093, -0.38009998, -0.85429996, -0.69589996, -0.3809, -0.85429996, -0.69589996, -0.43289998, -0.8552, 0.3093, -0.4337, -0.85429996, -0.69589996, -0.43289998, -0.8016, 0.3093, -0.4337, -0.8552, 0.3093, -0.4337, -0.85429996, -0.69589996, -0.43289998, -0.8024, -0.69589996, -0.43289998, -0.8016, 0.3093, -0.4337, -0.8024, -0.69589996, -0.43289998, -0.8016, 0.3093, -0.38009998, -0.8016, 0.3093, -0.4337, -0.8024, -0.69589996, -0.43289998, -0.8024, -0.69589996, -0.3809, -0.8016, 0.3093, -0.38009998, -0.8024, -0.69589996, -0.3809, -0.8552, 0.3093, -0.38009998, -0.8016, 0.3093, -0.38009998, -0.8024, -0.69589996, -0.3809, -0.85429996, -0.69589996, -0.3809, -0.8552, 0.3093, -0.38009998, -0.85429996, -0.69589996, -0.43289998, -0.8024, -0.69589996, -0.3809, -0.8024, -0.69589996, -0.43289998, -0.85429996, -0.69589996, -0.43289998, -0.85429996, -0.69589996, -0.3809, -0.8024, -0.69589996, -0.3809, 0.85429996, -0.69589996, -0.3809, 0.8552, 0.3093, -0.4337, 0.85429996, -0.69589996, -0.43289998, 0.85429996, -0.69589996, -0.3809, 0.8552, 0.3093, -0.38009998, 0.8552, 0.3093, -0.4337, 0.85429996, -0.69589996, -0.43289998, 0.80149996, 0.3093, -0.4337, 0.8023, -0.69589996, -0.43289998, 0.85429996, -0.69589996, -0.43289998, 0.8552, 0.3093, -0.4337, 0.80149996, 0.3093, -0.4337, 0.8023, -0.69589996, -0.43289998, 0.80149996, 0.3093, -0.38009998, 0.8023, -0.69589996, -0.3809, 0.8023, -0.69589996, -0.43289998, 0.80149996, 0.3093, -0.4337, 0.80149996, 0.3093, -0.38009998, 0.8023, -0.69589996, -0.3809, 0.8552, 0.3093, -0.38009998, 0.85429996, -0.69589996, -0.3809, 0.8023, -0.69589996, -0.3809, 0.80149996, 0.3093, -0.38009998, 0.8552, 0.3093, -0.38009998, 0.85429996, -0.69589996, -0.43289998, 0.8023, -0.69589996, -0.3809, 0.85429996, -0.69589996, -0.3809, 0.85429996, -0.69589996, -0.43289998, 0.8023, -0.69589996, -0.43289998, 0.8023, -0.69589996, -0.3809, -0.85429996, -0.69589996, 0.41189998, -0.8552, 0.3093, 0.46469998, -0.85429996, -0.69589996, 0.4639, -0.85429996, -0.69589996, 0.41189998, -0.8552, 0.3093, 0.4111, -0.8552, 0.3093, 0.46469998, -0.85429996, -0.69589996, 0.4639, -0.8016, 0.3093, 0.46469998, -0.8024, -0.69589996, 0.4639, -0.85429996, -0.69589996, 0.4639, -0.8552, 0.3093, 0.46469998, -0.8016, 0.3093, 0.46469998, -0.8024, -0.69589996, 0.4639, -0.8016, 0.3093, 0.4111, -0.8024, -0.69589996, 0.41189998, -0.8024, -0.69589996, 0.4639, -0.8016, 0.3093, 0.46469998, -0.8016, 0.3093, 0.4111, -0.8024, -0.69589996, 0.41189998, -0.8552, 0.3093, 0.4111, -0.85429996, -0.69589996, 0.41189998, -0.8024, -0.69589996, 0.41189998, -0.8016, 0.3093, 0.4111, -0.8552, 0.3093, 0.4111, -0.85429996, -0.69589996, 0.4639, -0.8024, -0.69589996, 0.41189998, -0.85429996, -0.69589996, 0.41189998, -0.85429996, -0.69589996, 0.4639, -0.8024, -0.69589996, 0.4639, -0.8024, -0.69589996, 0.41189998, 0.85429996, -0.69589996, 0.41189998, 0.8552, 0.3093, 0.46469998, 0.8552, 0.3093, 0.4111, 0.85429996, -0.69589996, 0.41189998, 0.85429996, -0.69589996, 0.4639, 0.8552, 0.3093, 0.46469998, 0.85429996, -0.69589996, 0.4639, 0.80149996, 0.3093, 0.46469998, 0.8552, 0.3093, 0.46469998, 0.85429996, -0.69589996, 0.4639, 0.8023, -0.69589996, 0.4639, 0.80149996, 0.3093, 0.46469998, 0.8023, -0.69589996, 0.4639, 0.80149996, 0.3093, 0.4111, 0.80149996, 0.3093, 0.46469998, 0.8023, -0.69589996, 0.4639, 0.8023, -0.69589996, 0.41189998, 0.80149996, 0.3093, 0.4111, 0.8023, -0.69589996, 0.41189998, 0.8552, 0.3093, 0.4111, 0.80149996, 0.3093, 0.4111, 0.8023, -0.69589996, 0.41189998, 0.85429996, -0.69589996, 0.41189998, 0.8552, 0.3093, 0.4111, 0.85429996, -0.69589996, 0.4639, 0.8023, -0.69589996, 0.41189998, 0.8023, -0.69589996, 0.4639, 0.85429996, -0.69589996, 0.4639, 0.85429996, -0.69589996, 0.41189998, 0.8023, -0.69589996, 0.41189998, -0.8752, 0.2949, 0.5258, -0.8752, 0.354, -0.41689998, -0.8752, 0.354, 0.5258, -0.8752, 0.2949, 0.5258, -0.8752, 0.2949, -0.41689998, -0.8752, 0.354, -0.41689998, -0.8752, 0.2949, -0.41689998, -0.8752, 0.354, -0.46559998, -0.8752, 0.354, -0.41689998, -0.8752, 0.2949, -0.41689998, -0.8752, 0.2949, -0.46559998, -0.8752, 0.354, -0.46559998, -0.8752, 0.354, -0.46559998, -0.8752, 0.47129998, -0.41689998, -0.8752, 0.354, -0.41689998, -0.8752, 0.354, -0.46559998, -0.8752, 0.47129998, -0.46559998, -0.8752, 0.47129998, -0.41689998, -0.8752, 0.354, -0.41689998, 0.8752, 0.47129998, -0.41689998, 0.8752, 0.354, -0.41689998, -0.8752, 0.354, -0.41689998, -0.8752, 0.47129998, -0.41689998, 0.8752, 0.47129998, -0.41689998, 0.8752, 0.2949, -0.41689998, 0.8752, 0.354, 0.5258, 0.8752, 0.354, -0.41689998, 0.8752, 0.2949, -0.41689998, 0.8752, 0.2949, 0.5258, 0.8752, 0.354, 0.5258, 0.8752, 0.354, -0.41689998, 0.8752, 0.2949, -0.46559998, 0.8752, 0.2949, -0.41689998, 0.8752, 0.354, -0.41689998, 0.8752, 0.354, -0.46559998, 0.8752, 0.2949, -0.46559998, 0.8752, 0.354, -0.41689998, 0.8752, 0.47129998, -0.46559998, 0.8752, 0.354, -0.46559998, 0.8752, 0.354, -0.41689998, 0.8752, 0.47129998, -0.41689998, 0.8752, 0.47129998, -0.46559998, 0.8752, 0.2949, 0.5258, -0.8752, 0.354, 0.5258, 0.8752, 0.354, 0.5258, 0.8752, 0.2949, 0.5258, -0.8752, 0.2949, 0.5258, -0.8752, 0.354, 0.5258, -0.8752, 0.2949, -0.46559998, 0.8752, 0.354, -0.46559998, -0.8752, 0.354, -0.46559998, -0.8752, 0.2949, -0.46559998, 0.8752, 0.2949, -0.46559998, 0.8752, 0.354, -0.46559998, 0.8752, 0.354, -0.46559998, -0.8752, 0.47129998, -0.46559998, -0.8752, 0.354, -0.46559998, 0.8752, 0.354, -0.46559998, 0.8752, 0.47129998, -0.46559998, -0.8752, 0.47129998, -0.46559998, 0.8752, 0.2949, -0.41689998, -0.8752, 0.2949, -0.46559998, -0.8752, 0.2949, -0.41689998, 0.8752, 0.2949, -0.41689998, 0.8752, 0.2949, -0.46559998, -0.8752, 0.2949, -0.46559998, -0.8752, 0.2949, 0.5258, 0.8752, 0.2949, -0.41689998, -0.8752, 0.2949, -0.41689998, -0.8752, 0.2949, 0.5258, 0.8752, 0.2949, 0.5258, 0.8752, 0.2949, -0.41689998, -0.8752, 0.47129998, -0.41689998, 0.8752, 0.47129998, -0.46559998, 0.8752, 0.47129998, -0.41689998, -0.8752, 0.47129998, -0.41689998, -0.8752, 0.47129998, -0.46559998, 0.8752, 0.47129998, -0.46559998, -0.83849996, -0.3908, 0.4551, 0.83849996, -0.3908, -0.41689998, 0.83849996, -0.3908, 0.4551, -0.83849996, -0.3908, 0.4551, -0.83849996, -0.3908, -0.41689998, 0.83849996, -0.3908, -0.41689998, -0.83849996, -0.42, 0.4551, 0.83849996, -0.42, -0.41689998, -0.83849996, -0.42, -0.41689998, -0.83849996, -0.42, 0.4551, 0.83849996, -0.42, 0.4551, 0.83849996, -0.42, -0.41689998, 0.83849996, -0.3908, -0.41689998, 0.83849996, -0.42, 0.4551, 0.83849996, -0.3908, 0.4551, 0.83849996, -0.3908, -0.41689998, 0.83849996, -0.42, -0.41689998, 0.83849996, -0.42, 0.4551, -0.83849996, -0.3908, -0.41689998, 0.83849996, -0.42, -0.41689998, 0.83849996, -0.3908, -0.41689998, -0.83849996, -0.3908, -0.41689998, -0.83849996, -0.42, -0.41689998, 0.83849996, -0.42, -0.41689998, -0.83849996, -0.3908, 0.4551, -0.83849996, -0.42, -0.41689998, -0.83849996, -0.3908, -0.41689998, -0.83849996, -0.3908, 0.4551, -0.83849996, -0.42, 0.4551, -0.83849996, -0.42, -0.41689998, 0.83849996, -0.3908, 0.4551, -0.83849996, -0.42, 0.4551, -0.83849996, -0.3908, 0.4551, 0.83849996, -0.3908, 0.4551, 0.83849996, -0.42, 0.4551, -0.83849996, -0.42, 0.4551, 0.8752, 0.354, 0.5258, -0.8752, 0.354, -0.41689998, 0.8752, 0.354, -0.41689998, 0.8752, 0.354, 0.5258, -0.8752, 0.354, 0.5258, -0.8752, 0.354, -0.41689998)
-
-[sub_resource type="ArrayMesh" id="ArrayMesh_fe3vv"]
-_surfaces = [{
-"aabb": AABB(-0.8752097, -0.69588906, -0.46559912, 1.7504196, 1.1672136, 0.99137306),
-"format": 34896613377,
-"index_count": 240,
-"index_data": PackedByteArray("FAAVABYAFAAXABUAFwAYABUAGQAUABYAFwAUABkAGQAWABoAFwAbABgAFwAZABsAGwAaABgAGwAZABoAHAAdAB4AHAAfAB0AHgAdACAAIQAfABwAHgAhABwAIQAiAB8AHgAgACMAHgAjACEAIwAgACIAIwAiACEAJAAlACYAJAAnACUAJgAlACgAKQAnACQAJgApACQAKQAqACcAJgAoACsAJgArACkAKwAoACoAKwAqACkALAAtAC4ALAAvAC0ALwAwAC0AMQAsAC4ALwAsADEAMQAuADIALwAzADAALwAxADMAMwAyADAAMwAxADIAAAABAAIAAwAAAAIAAwACAAQABAACAAEAAAADADQANAADAAQAAAA0ADUAAAA1AAEANAAEAAYABAABAAYANAAFADUANAAHAAUABgAHADQANQAFADYANQA2AAEABQAHADcABgA3AAcABQA3ADYAAQAIAAYANwALADYANgAKAAEAAQAKAAgANgALAAoABgAIAAkABgAJADcACgAJAAgANwAJAAsACgALAAkADAANAA4ADQAPAA4ADAAQAA0ADgAPABEADgARAAwADAASABAADAARABIAEAATAA0ADQATAA8AEAASABMAEQAPABMAEQATABIA"),
-"lods": [0.6042974, PackedByteArray("AAABAAIAAwAAAAIABAACAAEAAwACAAQAAwAFAAAAAAAFAAEAAwAEAAYABAABAAYABgAHAAMAAwAHAAUAAQAIAAYABgAJAAcABgAIAAkABQAHAAkAAQAKAAgABQAKAAEACgAJAAgACQALAAUABQALAAoACgALAAkADAANAA4ADQAPAA4ADAAQAA0ADgAPABEADgARAAwADAASABAADAARABIAEAATAA0ADQATAA8AEAASABMAEQAPABMAEQATABIA")],
-"name": "Shelf_B",
-"primitive": 3,
-"uv_scale": Vector4(0, 0, 0, 0),
-"vertex_count": 56,
-"vertex_data": PackedByteArray("AABM2f//AAAAAETmkgwAAAAAROb//wAA//9M2f//AAD//0Tm//8AAAAATNkAAAAA//9E5pIMAAD//0zZAAAAAP////+SDAAA/////wAAAAAAAP//kgwAAAAA//8AAAAAXgXpQsHtAACg+ulCkQwAAKD66ULB7QAAoPqDPMHtAABeBelCkQwAAF4FgzzB7QAAXgWDPJEMAACg+oM8kQwAAA0DAADeFQAA7gJ13D0IAADuAnXcFRYAAA0DAABzCAAAxQp13D0IAACnCgAA3hUAAMUKddwVFgAApwoAAHMIAADx/AAA3hUAABD9ddw9CAAA8fwAAHMIAAAQ/XXcFRYAADn1ddw9CAAAV/UAAN4VAAA59XXcFRYAAFf1AABzCAAADQMAAJriAADuAnXcPPAAAA0DAAAG8AAA7gJ13GTiAADFCnXcPPAAAKcKAACa4gAAxQp13GTiAACnCgAABvAAAPH8AACa4gAAEP113DzwAAAQ/XXcZOIAAPH8AAAG8AAAOfV13DzwAABX9QAAmuIAADn1ddxk4gAAV/UAAAbwAAD//0zZkgwAAAAATNmSDAAAAABE5gAAAAD//0TmAAAAAA==")
-}]
-blend_shape_mode = 0
-
-[sub_resource type="ArrayMesh" id="ArrayMesh_ytx1t"]
-resource_name = "BurgerPiz_Shelf_B_004"
-_surfaces = [{
-"aabb": AABB(-0.8752097, -0.69588906, -0.46559912, 1.7504196, 1.1672136, 0.99137306),
-"attribute_data": PackedByteArray("PD8gOllH375ZRyA6PD+7xXFX375xV7vFWUfeAnFXXPlZR1z5cVfeAjw/IDpZRyA6WUffvjw/u8VxV7vFcVffvjw/XPlZR94CWUdc+Tw/3gI8P94CPD9c+XFXXPlxV94C2QJc+duK3gLZAt4C24pc+S2E3gLbilz5LYRc+duK3gIJis4CnAef/QmKn/2cB84CCYrOApwHn/2cB84CCYqf/VNF/8SwSZFCU0WRQrBJ/8RTRc4CsEmf/VNFn/2wSc4CU0WRQrBJ/8RTRf/EsEmRQlNFn/2wSc4CU0XOArBJn/3ZAlz5LYTeAi2EXPnZAt4C83mO7ruAeG3YeXhtoICO7vN5ju67gHht2Hl4baCAju6ggI7u2Hl4bbuAeG3zeY7uoICO7th5eG27gHht83mO7vN5AG2ggK1zoIAAbfN5rXPzeY7uu4B4baCAju7YeXhtYUeO7ppAeG21QI7ufEd4baCAju7YeXht83mO7ruAeG21QI7ufEd4bWFHju6aQHhtYUcAbbVArXNhR61ztUAAbSIUju5aDXhtdQ2O7j0UeG3zeY7uu4B4baCAju7YeXhtdQ2O7j0UeG0iFI7uWg14baCAju7YeXht83mO7ruAeG3zeSvgoIB+2fN5ftmggCvgIhSO7loNeG09FHhtdQ2O7mFHju6aQHhtfEd4bbVAju51DY7uPRR4bVoNeG0iFI7utUCO7nxHeG2aQHhtYUeO7mFHK+C1QH7ZtUAr4GFHftk8P9++WUe7xTw/375ZR7vFWUdc+VlH3gIthFz5LYTeAg=="),
-"format": 34896613399,
-"index_count": 240,
-"index_data": PackedByteArray("PAA9AD4APAA/AD0AQABBAEIAQABDAEEARABFAEYARABHAEUASABJAEoASABLAEkATABNAE4ATABPAE0AUABRAFIAUABTAFEAVABVAFYAVABXAFUAWABZAFoAWABbAFkAXABdAF4AXABfAF0AYABhAGIAYABjAGEAZABlAGYAZABnAGUAaABpAGoAaABrAGkAbABtAG4AbABvAG0AcABxAHIAcABzAHEAdAB1AHYAdAB3AHUAeAB5AHoAeAB7AHkAfAB9AH4AfAB/AH0AgACBAIIAgACDAIEAhACFAIYAhACHAIUAiACJAIoAiACLAIkAAAABAAIAAACMAAEAjACNAAEAjAADAI0AjQAEAAEAjQAFAAQABgAHAAgABgAJAAcAjgALAAwAjgAKAAsADAANAI4ADACPAA0ADAAOAI8ADAAPAA4AEAARABIAEAATABEAFACQAJEAFAAVAJAAkAAXAJEAkAAWABcAkgAZAJMAkgAbABkAGgCSAJMAGgAYAJIAHAAdAB4AHAAfAB0AIAAhACIAIAAjACEAJAAlACYAJAAnACUAKAApACoAKAArACkALAAtAC4ALAAvAC0AMAAxADIAMAAzADEANAA1ADYANAA3ADUAOAA5ADoAOAA7ADkA"),
-"lods": [0.6042974, PackedByteArray("AAABAAIAAAADAAEAAwAEAAEAAwAFAAQABgAHAAgABgAJAAcACgALAAwADAANAAoADAAOAA0ADAAPAA4AEAARABIAEAATABEAFAAVABYAFgAXABQAGAAZABoAGAAbABkAHAAdAB4AHAAfAB0AIAAhACIAIAAjACEAJAAlACYAJAAnACUAKAApACoAKAArACkALAAtAC4ALAAvAC0AMAAxADIAMAAzADEANAA1ADYANAA3ADUAOAA5ADoAOAA7ADkA")],
-"material": SubResource("StandardMaterial3D_ll1th"),
-"name": "Shelf_B",
-"primitive": 3,
-"uv_scale": Vector4(0, 0, 0, 0),
-"vertex_count": 148,
-"vertex_data": PackedByteArray("AABM2f//qioAAETmkgyqKgAAROb//6oqAABM2QAAqioAAP//kgyqKgAA//8AAKoqAABE5pIM/7//////kgz/v///ROaSDP+/AAD//5IM/7///0zZ//9U1f//ROb//1TV//9E5pIMVNX//0zZAABU1f////8AAFTV/////5IMVNX//0zZ////vwAAROb///+///9E5v///78AAEzZ////vwAATNkAAAAA//9M2QAAAAD/////AAAAAAAA//8AAAAA//9M2f//qioAAEzZAACqKgAATNn//6oq//9M2QAAqioAAP//kgxU1f////8AAFTV/////5IMVNUAAP//AABU1V4F6ULB7aoqoPrpQpEMqiqg+ulCwe2qKl4F6UKRDKoqXgWDPMHtVNWg+oM8kQxU1V4FgzyRDFTVoPqDPMHtVNWg+ulCkQyqKqD6gzzB7aoqoPrpQsHtqiqg+oM8kQyqKl4F6UKRDP//oPqDPJEM//+g+ulCkQz//14FgzyRDP//XgXpQsHtVNVeBYM8kQxU1V4F6UKRDFTVXgWDPMHtVNWg+ulCwe3/P14FgzzB7f8/XgXpQsHt/z+g+oM8we3/P///ROb//1TVAABE5pIMVNX//0TmkgxU1QAAROb//1TVDQMAAN4VBQDuAnXcPQgFAO4CddwVFgUADQMAAHMIBQANAwAAcwgHAMUKddw9CAcA7gJ13D0IBwCnCgAAcwgHAKcKAABzCP+/xQp13BUW/7/FCnXcPQj/v6cKAADeFf+/pwoAAN4VBoDuAnXcFRYGgMUKddwVFgaADQMAAN4VBoANAwAAcwj/P6cKAADeFf8/pwoAAHMI/z8NAwAA3hX/P/H8AADeFf+/EP113D0I/7/x/AAAcwj/vxD9ddwVFv+/8fwAAHMIBwA59XXcPQgHAFf1AABzCAcAEP113D0IBwBX9QAAcwgFADn1ddwVFgUAV/UAAN4VBQA59XXcPQgFAFf1AADeFQaAEP113BUWBoDx/AAA3hUGgDn1ddwVFgaA8fwAAHMI/z9X9QAA3hX/P/H8AADeFf8/V/UAAHMI/z8NAwAAmuIFAO4Cddw88AUADQMAAAbwBQDuAnXcZOIFAA0DAAAG8AaAxQp13DzwBoCnCgAABvAGgO4Cddw88AaApwoAAAbw/7/FCnXcZOL/v6cKAACa4v+/xQp13Dzw/7+nCgAAmuIHAO4Cddxk4gcADQMAAJriBwDFCnXcZOIHAA0DAAAG8P8/pwoAAJri/z8NAwAAmuL/P6cKAAAG8P8/8fwAAJri/78Q/XXcPPD/vxD9ddxk4v+/8fwAAAbw/7/x/AAABvAGgDn1ddw88AaAEP113DzwBoBX9QAABvAGgFf1AAAG8AUAOfV13GTiBQA59XXcPPAFAFf1AACa4gUAV/UAAJriBwAQ/XXcZOIHADn1ddxk4gcA8fwAAJriBwDx/AAABvD/P1f1AACa4v8/V/UAAAbw/z/x/AAAmuL/PwAATNmSDKoqAABE5gAAqir//0zZkgxU1f//ROYAAFTV//9E5gAAAAAAAETmAAAAAP//TNmSDKoqAABM2ZIMqipU1VTVVNVU1VTVVNVU1VTVVNVU1VTVVNX/////////////////////qiqqKqoqqiqqKqoqqiqqKqoqqiqqKqoq//////////////////////+//7//v/+//7//v/+//79UVVRVVFVUVVRVVFVUVVRVVNWqKlTVqipU1aoqVNWqKqqqqqqqqqqqqqqqqqqqqqqqKlTVqipU1aoqVNWqKlTVqqpUVaqqVFWqqlRVqqpUVf8//7//P/+//z//v/8//79UVaqqVFWqqlRVqqpUVaqq/3//f/9//3//f/9//3//f1TVqipU1aoqVNWqKlTVqioCQPp/AkD6fwJA+n8CQPp/AAD/fwAA/38AAP9/AAD/f/J/GgDyfxoA8n8aAPJ/GgAAAP9/AAD/fwAA/38AAP9/AAD/fwAA/38AAP9/AAD/f/J/GgDyfxoA8n8aAPJ/GgAAAP9/AAD/fwAA/38AAP9/AkD6fwJA+n8CQPp/AkD6fwAA/38AAP9/AAD/fwAA/38AAP9/AAD/fwAA/38AAP9/AkD6fwJA+n8CQPp/AkD6fwAA/38AAP9/AAD/fwAA/3/yfxoA8n8aAPJ/GgDyfxoAAAD/fwAA/38AAP9/AAD/fwAA/38AAP9/AAD/fwAA/3/yfxoA8n8aAPJ/GgDyfxoAAAD/fwAA/38AAP9/AAD/fwJA+n8CQPp/AkD6fwJA+n8AAP9/AAD/fwAA/38AAP9/AAD/fwAA/38AAP9/AAD/f1TVVNVU1VTVqiqqKqoqqir/v/+//7//v1RVVFVUVVRV")
-}]
-blend_shape_mode = 0
-shadow_mesh = SubResource("ArrayMesh_fe3vv")
-
-[sub_resource type="ConcavePolygonShape3D" id="ConcavePolygonShape3D_muyks"]
 data = PackedVector3Array(-0.85429996, -0.69589996, -0.3809, -0.8552, 0.3093, -0.4337, -0.8552, 0.3093, -0.38009998, -0.85429996, -0.69589996, -0.3809, -0.85429996, -0.69589996, -0.43289998, -0.8552, 0.3093, -0.4337, -0.85429996, -0.69589996, -0.43289998, -0.8016, 0.3093, -0.4337, -0.8552, 0.3093, -0.4337, -0.85429996, -0.69589996, -0.43289998, -0.8024, -0.69589996, -0.43289998, -0.8016, 0.3093, -0.4337, -0.8024, -0.69589996, -0.43289998, -0.8016, 0.3093, -0.38009998, -0.8016, 0.3093, -0.4337, -0.8024, -0.69589996, -0.43289998, -0.8024, -0.69589996, -0.3809, -0.8016, 0.3093, -0.38009998, -0.8024, -0.69589996, -0.3809, -0.8552, 0.3093, -0.38009998, -0.8016, 0.3093, -0.38009998, -0.8024, -0.69589996, -0.3809, -0.85429996, -0.69589996, -0.3809, -0.8552, 0.3093, -0.38009998, -0.85429996, -0.69589996, -0.43289998, -0.8024, -0.69589996, -0.3809, -0.8024, -0.69589996, -0.43289998, -0.85429996, -0.69589996, -0.43289998, -0.85429996, -0.69589996, -0.3809, -0.8024, -0.69589996, -0.3809, 0.85429996, -0.69589996, -0.3809, 0.8552, 0.3093, -0.4337, 0.85429996, -0.69589996, -0.43289998, 0.85429996, -0.69589996, -0.3809, 0.8552, 0.3093, -0.38009998, 0.8552, 0.3093, -0.4337, 0.85429996, -0.69589996, -0.43289998, 0.80149996, 0.3093, -0.4337, 0.8023, -0.69589996, -0.43289998, 0.85429996, -0.69589996, -0.43289998, 0.8552, 0.3093, -0.4337, 0.80149996, 0.3093, -0.4337, 0.8023, -0.69589996, -0.43289998, 0.80149996, 0.3093, -0.38009998, 0.8023, -0.69589996, -0.3809, 0.8023, -0.69589996, -0.43289998, 0.80149996, 0.3093, -0.4337, 0.80149996, 0.3093, -0.38009998, 0.8023, -0.69589996, -0.3809, 0.8552, 0.3093, -0.38009998, 0.85429996, -0.69589996, -0.3809, 0.8023, -0.69589996, -0.3809, 0.80149996, 0.3093, -0.38009998, 0.8552, 0.3093, -0.38009998, 0.85429996, -0.69589996, -0.43289998, 0.8023, -0.69589996, -0.3809, 0.85429996, -0.69589996, -0.3809, 0.85429996, -0.69589996, -0.43289998, 0.8023, -0.69589996, -0.43289998, 0.8023, -0.69589996, -0.3809, -0.85429996, -0.69589996, 0.41189998, -0.8552, 0.3093, 0.46469998, -0.85429996, -0.69589996, 0.4639, -0.85429996, -0.69589996, 0.41189998, -0.8552, 0.3093, 0.4111, -0.8552, 0.3093, 0.46469998, -0.85429996, -0.69589996, 0.4639, -0.8016, 0.3093, 0.46469998, -0.8024, -0.69589996, 0.4639, -0.85429996, -0.69589996, 0.4639, -0.8552, 0.3093, 0.46469998, -0.8016, 0.3093, 0.46469998, -0.8024, -0.69589996, 0.4639, -0.8016, 0.3093, 0.4111, -0.8024, -0.69589996, 0.41189998, -0.8024, -0.69589996, 0.4639, -0.8016, 0.3093, 0.46469998, -0.8016, 0.3093, 0.4111, -0.8024, -0.69589996, 0.41189998, -0.8552, 0.3093, 0.4111, -0.85429996, -0.69589996, 0.41189998, -0.8024, -0.69589996, 0.41189998, -0.8016, 0.3093, 0.4111, -0.8552, 0.3093, 0.4111, -0.85429996, -0.69589996, 0.4639, -0.8024, -0.69589996, 0.41189998, -0.85429996, -0.69589996, 0.41189998, -0.85429996, -0.69589996, 0.4639, -0.8024, -0.69589996, 0.4639, -0.8024, -0.69589996, 0.41189998, 0.85429996, -0.69589996, 0.41189998, 0.8552, 0.3093, 0.46469998, 0.8552, 0.3093, 0.4111, 0.85429996, -0.69589996, 0.41189998, 0.85429996, -0.69589996, 0.4639, 0.8552, 0.3093, 0.46469998, 0.85429996, -0.69589996, 0.4639, 0.80149996, 0.3093, 0.46469998, 0.8552, 0.3093, 0.46469998, 0.85429996, -0.69589996, 0.4639, 0.8023, -0.69589996, 0.4639, 0.80149996, 0.3093, 0.46469998, 0.8023, -0.69589996, 0.4639, 0.80149996, 0.3093, 0.4111, 0.80149996, 0.3093, 0.46469998, 0.8023, -0.69589996, 0.4639, 0.8023, -0.69589996, 0.41189998, 0.80149996, 0.3093, 0.4111, 0.8023, -0.69589996, 0.41189998, 0.8552, 0.3093, 0.4111, 0.80149996, 0.3093, 0.4111, 0.8023, -0.69589996, 0.41189998, 0.85429996, -0.69589996, 0.41189998, 0.8552, 0.3093, 0.4111, 0.85429996, -0.69589996, 0.4639, 0.8023, -0.69589996, 0.41189998, 0.8023, -0.69589996, 0.4639, 0.85429996, -0.69589996, 0.4639, 0.85429996, -0.69589996, 0.41189998, 0.8023, -0.69589996, 0.41189998, -0.8752, 0.2949, 0.5258, -0.8752, 0.354, -0.41689998, -0.8752, 0.354, 0.5258, -0.8752, 0.2949, 0.5258, -0.8752, 0.2949, -0.41689998, -0.8752, 0.354, -0.41689998, -0.8752, 0.2949, -0.41689998, -0.8752, 0.354, -0.46559998, -0.8752, 0.354, -0.41689998, -0.8752, 0.2949, -0.41689998, -0.8752, 0.2949, -0.46559998, -0.8752, 0.354, -0.46559998, -0.8752, 0.354, -0.46559998, -0.8752, 0.47129998, -0.41689998, -0.8752, 0.354, -0.41689998, -0.8752, 0.354, -0.46559998, -0.8752, 0.47129998, -0.46559998, -0.8752, 0.47129998, -0.41689998, -0.8752, 0.354, -0.41689998, 0.8752, 0.47129998, -0.41689998, 0.8752, 0.354, -0.41689998, -0.8752, 0.354, -0.41689998, -0.8752, 0.47129998, -0.41689998, 0.8752, 0.47129998, -0.41689998, 0.8752, 0.2949, -0.41689998, 0.8752, 0.354, 0.5258, 0.8752, 0.354, -0.41689998, 0.8752, 0.2949, -0.41689998, 0.8752, 0.2949, 0.5258, 0.8752, 0.354, 0.5258, 0.8752, 0.354, -0.41689998, 0.8752, 0.2949, -0.46559998, 0.8752, 0.2949, -0.41689998, 0.8752, 0.354, -0.41689998, 0.8752, 0.354, -0.46559998, 0.8752, 0.2949, -0.46559998, 0.8752, 0.354, -0.41689998, 0.8752, 0.47129998, -0.46559998, 0.8752, 0.354, -0.46559998, 0.8752, 0.354, -0.41689998, 0.8752, 0.47129998, -0.41689998, 0.8752, 0.47129998, -0.46559998, 0.8752, 0.2949, 0.5258, -0.8752, 0.354, 0.5258, 0.8752, 0.354, 0.5258, 0.8752, 0.2949, 0.5258, -0.8752, 0.2949, 0.5258, -0.8752, 0.354, 0.5258, -0.8752, 0.2949, -0.46559998, 0.8752, 0.354, -0.46559998, -0.8752, 0.354, -0.46559998, -0.8752, 0.2949, -0.46559998, 0.8752, 0.2949, -0.46559998, 0.8752, 0.354, -0.46559998, 0.8752, 0.354, -0.46559998, -0.8752, 0.47129998, -0.46559998, -0.8752, 0.354, -0.46559998, 0.8752, 0.354, -0.46559998, 0.8752, 0.47129998, -0.46559998, -0.8752, 0.47129998, -0.46559998, 0.8752, 0.2949, -0.41689998, -0.8752, 0.2949, -0.46559998, -0.8752, 0.2949, -0.41689998, 0.8752, 0.2949, -0.41689998, 0.8752, 0.2949, -0.46559998, -0.8752, 0.2949, -0.46559998, -0.8752, 0.2949, 0.5258, 0.8752, 0.2949, -0.41689998, -0.8752, 0.2949, -0.41689998, -0.8752, 0.2949, 0.5258, 0.8752, 0.2949, 0.5258, 0.8752, 0.2949, -0.41689998, -0.8752, 0.47129998, -0.41689998, 0.8752, 0.47129998, -0.46559998, 0.8752, 0.47129998, -0.41689998, -0.8752, 0.47129998, -0.41689998, -0.8752, 0.47129998, -0.46559998, 0.8752, 0.47129998, -0.46559998, -0.83849996, -0.3908, 0.4551, 0.83849996, -0.3908, -0.41689998, 0.83849996, -0.3908, 0.4551, -0.83849996, -0.3908, 0.4551, -0.83849996, -0.3908, -0.41689998, 0.83849996, -0.3908, -0.41689998, -0.83849996, -0.42, 0.4551, 0.83849996, -0.42, -0.41689998, -0.83849996, -0.42, -0.41689998, -0.83849996, -0.42, 0.4551, 0.83849996, -0.42, 0.4551, 0.83849996, -0.42, -0.41689998, 0.83849996, -0.3908, -0.41689998, 0.83849996, -0.42, 0.4551, 0.83849996, -0.3908, 0.4551, 0.83849996, -0.3908, -0.41689998, 0.83849996, -0.42, -0.41689998, 0.83849996, -0.42, 0.4551, -0.83849996, -0.3908, -0.41689998, 0.83849996, -0.42, -0.41689998, 0.83849996, -0.3908, -0.41689998, -0.83849996, -0.3908, -0.41689998, -0.83849996, -0.42, -0.41689998, 0.83849996, -0.42, -0.41689998, -0.83849996, -0.3908, 0.4551, -0.83849996, -0.42, -0.41689998, -0.83849996, -0.3908, -0.41689998, -0.83849996, -0.3908, 0.4551, -0.83849996, -0.42, 0.4551, -0.83849996, -0.42, -0.41689998, 0.83849996, -0.3908, 0.4551, -0.83849996, -0.42, 0.4551, -0.83849996, -0.3908, 0.4551, 0.83849996, -0.3908, 0.4551, 0.83849996, -0.42, 0.4551, -0.83849996, -0.42, 0.4551, 0.8752, 0.354, 0.5258, -0.8752, 0.354, -0.41689998, 0.8752, 0.354, -0.41689998, 0.8752, 0.354, 0.5258, -0.8752, 0.354, 0.5258, -0.8752, 0.354, -0.41689998)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_y5i8u"]
@@ -27291,6 +27255,7 @@ data = PackedVector3Array(-2.5482, -0.0823, -0.4168, 3.2581, 0.4168, -0.4168, -2
 [node name="NavigationRegion3D" type="NavigationRegion3D" unique_id=292660425]
 navigation_mesh = SubResource("NavigationMesh_iroh0")
 script = ExtResource("3_wsrv8")
+npc_path = NodePath("BossNpc")
 
 [node name="BurgerPiz2" type="Node3D" parent="." unique_id=321264938]
 
@@ -27458,6 +27423,7 @@ mesh = SubResource("ArrayMesh_lbsu0")
 [node name="StaticBody3D" type="StaticBody3D" parent="BurgerPiz2/Background" unique_id=1590481750]
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="BurgerPiz2/Background/StaticBody3D" unique_id=30004935]
+transform = Transform3D(-0.17203175, 0.9850915, -0.00026938997, -0.98509073, -0.17203194, -0.0011889866, -0.0012176041, 6.0830036e-05, 0.9999994, 0, 0, 0)
 shape = SubResource("ConcavePolygonShape3D_p36qv")
 
 [node name="Building" type="MeshInstance3D" parent="BurgerPiz2" unique_id=1510163365]
@@ -29985,15 +29951,6 @@ mesh = SubResource("ArrayMesh_amtao")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="BurgerPiz2/Shelf_B_002/StaticBody3D" unique_id=1220694093]
 shape = SubResource("ConcavePolygonShape3D_3htrp")
-
-[node name="Shelf_B_003" type="MeshInstance3D" parent="BurgerPiz2" unique_id=732415116]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -1.5290215, 0.6754638, 2.691797)
-mesh = SubResource("ArrayMesh_ytx1t")
-
-[node name="StaticBody3D" type="StaticBody3D" parent="BurgerPiz2/Shelf_B_003" unique_id=223674351]
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="BurgerPiz2/Shelf_B_003/StaticBody3D" unique_id=604942373]
-shape = SubResource("ConcavePolygonShape3D_muyks")
 
 [node name="Shelf_F_001" type="MeshInstance3D" parent="BurgerPiz2" unique_id=967174832]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.9071162, 0.6167279, 5.9946113)
@@ -33121,6 +33078,7 @@ script = ExtResource("4_vthih")
 table_seat_height_offset = 0.8
 regular_chair_table_seat_height_offset = 0.7
 chair_seat_toward_table_offset = 0.1
+seated_preview_table_ids = PackedInt32Array()
 seated_actor_height_offset = -1.4
 
 [node name="WorkerSpawnPoint" type="Marker3D" parent="." unique_id=1686686192]
@@ -33329,6 +33287,127 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.726563, 1.29, -0.05558586)
 [node name="WorkerReachTarget_Meat" type="Marker3D" parent="Kitchen/Preperation_Shelf/prep_shelf/BurgerPrepStation" unique_id=2083746457]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6331358, 0.40558648, 0.08860701)
 
+[node name="Preperation_Shelf2" type="Node" parent="Kitchen" unique_id=1340613399]
+
+[node name="prep_shelf" type="MeshInstance3D" parent="Kitchen/Preperation_Shelf2" unique_id=101395948]
+transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, -1.4839242, 0.60472333, 2.6793537)
+mesh = SubResource("ArrayMesh_qyrto")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Kitchen/Preperation_Shelf2/prep_shelf" unique_id=10746312]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Kitchen/Preperation_Shelf2/prep_shelf/StaticBody3D" unique_id=1115687864]
+shape = SubResource("ConcavePolygonShape3D_gn4nm")
+
+[node name="tomato" type="MeshInstance3D" parent="Kitchen/Preperation_Shelf2/prep_shelf" unique_id=761310620]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.6857343, 0.33700866, -0.22289658)
+mesh = SubResource("ArrayMesh_tw3fk")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Kitchen/Preperation_Shelf2/prep_shelf/tomato" unique_id=1477004795]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Kitchen/Preperation_Shelf2/prep_shelf/tomato/StaticBody3D" unique_id=488274516]
+shape = SubResource("ConcavePolygonShape3D_xecvw")
+
+[node name="onion" type="MeshInstance3D" parent="Kitchen/Preperation_Shelf2/prep_shelf" unique_id=201538788]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.41272402, 0.33700866, -0.22289658)
+mesh = SubResource("ArrayMesh_lm2el")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Kitchen/Preperation_Shelf2/prep_shelf/onion" unique_id=894327923]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Kitchen/Preperation_Shelf2/prep_shelf/onion/StaticBody3D" unique_id=1799279687]
+shape = SubResource("ConcavePolygonShape3D_jpsh7")
+
+[node name="cheese" type="MeshInstance3D" parent="Kitchen/Preperation_Shelf2/prep_shelf" unique_id=1776988650]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.14286423, 0.33700866, -0.22289658)
+mesh = SubResource("ArrayMesh_316tf")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Kitchen/Preperation_Shelf2/prep_shelf/cheese" unique_id=913808949]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Kitchen/Preperation_Shelf2/prep_shelf/cheese/StaticBody3D" unique_id=1590524227]
+shape = SubResource("ConcavePolygonShape3D_p11u2")
+
+[node name="pickles" type="MeshInstance3D" parent="Kitchen/Preperation_Shelf2/prep_shelf" unique_id=25310575]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.14152908, 0.33700866, -0.22289658)
+mesh = SubResource("ArrayMesh_g0od5")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Kitchen/Preperation_Shelf2/prep_shelf/pickles" unique_id=1561966153]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Kitchen/Preperation_Shelf2/prep_shelf/pickles/StaticBody3D" unique_id=1796457378]
+shape = SubResource("ConcavePolygonShape3D_n3ab5")
+
+[node name="lettuce" type="MeshInstance3D" parent="Kitchen/Preperation_Shelf2/prep_shelf" unique_id=289225460]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.4186592, 0.33700866, -0.22289658)
+mesh = SubResource("ArrayMesh_61ph8")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Kitchen/Preperation_Shelf2/prep_shelf/lettuce" unique_id=744348230]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Kitchen/Preperation_Shelf2/prep_shelf/lettuce/StaticBody3D" unique_id=135100023]
+shape = SubResource("ConcavePolygonShape3D_e7y0b")
+
+[node name="jalapenos" type="MeshInstance3D" parent="Kitchen/Preperation_Shelf2/prep_shelf" unique_id=1237023506]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.68771744, 0.33700866, -0.22289658)
+mesh = SubResource("ArrayMesh_yb6bg")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Kitchen/Preperation_Shelf2/prep_shelf/jalapenos" unique_id=1228761340]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Kitchen/Preperation_Shelf2/prep_shelf/jalapenos/StaticBody3D" unique_id=91949531]
+shape = SubResource("ConcavePolygonShape3D_p3suj")
+
+[node name="ketchup" type="MeshInstance3D" parent="Kitchen/Preperation_Shelf2/prep_shelf" unique_id=734665798]
+transform = Transform3D(0.058267612, 0, 0, 0, 0.058267612, 0, 0, 0, 0.058267612, -0.726563, 1.290252, -0.05558586)
+mesh = SubResource("ArrayMesh_vjsrk")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Kitchen/Preperation_Shelf2/prep_shelf/ketchup" unique_id=1929255988]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Kitchen/Preperation_Shelf2/prep_shelf/ketchup/StaticBody3D" unique_id=1552401386]
+shape = SubResource("ConcavePolygonShape3D_4gscw")
+
+[node name="BurgerPrepStation" type="Node3D" parent="Kitchen/Preperation_Shelf2/prep_shelf" unique_id=1293546018]
+script = ExtResource("7_burger_prep")
+burger_storage_spacing = Vector2(0.11, 0.11)
+default_recipe = PackedStringArray("meat", "cheese", "pickles", "onion", "lettuce")
+
+[node name="WorkerPrepSnapPoint" type="Marker3D" parent="Kitchen/Preperation_Shelf2/prep_shelf/BurgerPrepStation" unique_id=106012288]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -0.02960515, -0.59093416, 0.34)
+
+[node name="WorkerPrepEntrancePoint" type="Marker3D" parent="Kitchen/Preperation_Shelf2/prep_shelf/BurgerPrepStation" unique_id=599998914]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.02960515, -0.20472345, 1.25)
+
+[node name="WorkerPrepExitPoint" type="Marker3D" parent="Kitchen/Preperation_Shelf2/prep_shelf/BurgerPrepStation" unique_id=409810666]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.02960515, -0.20472345, 1.25)
+
+[node name="WorkerPrepStandPoint" type="Marker3D" parent="Kitchen/Preperation_Shelf2/prep_shelf/BurgerPrepStation" unique_id=30239326]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -0.02960515, -0.59093416, 0.34)
+
+[node name="BurgerAssemblyPoint" type="Marker3D" parent="Kitchen/Preperation_Shelf2/prep_shelf/BurgerPrepStation" unique_id=1483253670]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.42653918, 0.19795465)
+
+[node name="BurgerStoragePoint" type="Marker3D" parent="Kitchen/Preperation_Shelf2/prep_shelf/BurgerPrepStation" unique_id=286176859]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.64186716, 0.42653918, 0.30535)
+
+[node name="WorkerReachTarget_Tomato" type="Marker3D" parent="Kitchen/Preperation_Shelf2/prep_shelf/BurgerPrepStation" unique_id=1160135993]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.6857343, 0.47, -0.02)
+
+[node name="WorkerReachTarget_Onion" type="Marker3D" parent="Kitchen/Preperation_Shelf2/prep_shelf/BurgerPrepStation" unique_id=1432414886]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.41272402, 0.47, -0.02)
+
+[node name="WorkerReachTarget_Cheese" type="Marker3D" parent="Kitchen/Preperation_Shelf2/prep_shelf/BurgerPrepStation" unique_id=653196399]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.14286423, 0.47, -0.02)
+
+[node name="WorkerReachTarget_Pickles" type="Marker3D" parent="Kitchen/Preperation_Shelf2/prep_shelf/BurgerPrepStation" unique_id=108658348]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.14152908, 0.47, -0.02)
+
+[node name="WorkerReachTarget_Lettuce" type="Marker3D" parent="Kitchen/Preperation_Shelf2/prep_shelf/BurgerPrepStation" unique_id=602130326]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.4186592, 0.47, -0.02)
+
+[node name="WorkerReachTarget_Jalapenos" type="Marker3D" parent="Kitchen/Preperation_Shelf2/prep_shelf/BurgerPrepStation" unique_id=768131039]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.68771744, 0.47, -0.02)
+
+[node name="WorkerReachTarget_Ketchup" type="Marker3D" parent="Kitchen/Preperation_Shelf2/prep_shelf/BurgerPrepStation" unique_id=607159136]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.726563, 1.29, -0.05558586)
+
+[node name="WorkerReachTarget_Meat" type="Marker3D" parent="Kitchen/Preperation_Shelf2/prep_shelf/BurgerPrepStation" unique_id=1583600458]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6331358, 0.40558648, 0.08860701)
+
 [node name="Fryer_2" type="Node" parent="Kitchen" unique_id=584852075]
 script = ExtResource("10_fryerstation")
 
@@ -33469,6 +33548,7 @@ transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0.41
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.9751453, 3.407163, 5.9505687)
 mesh = SubResource("ArrayMesh_56gib")
 script = ExtResource("7_menu_display")
+display_mode = "Menu"
 display_text = "BIT MARKET MENU
 
 BURGER  $5
@@ -33526,3 +33606,6 @@ spawn_point_path = NodePath("../BurgerPiz2/Door_F_001")
 
 [node name="EmployeeManager" type="Node" parent="." unique_id=106836028]
 script = ExtResource("84_xt107")
+
+[node name="BossNpc" parent="." unique_id=3959846 instance=ExtResource("82_o25jv")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.48465478, 0.43350935, 11.608576)

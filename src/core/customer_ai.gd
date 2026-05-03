@@ -27,6 +27,7 @@ var _held_food_item: Node3D = null
 var _assigned_register_marker: Node3D = null
 var _register_task_requested := false
 var _eating_controller: Node = null
+var _ordered_at_seconds := 0.0
 
 const FOOD_BURGER := "burger"
 const FOOD_FRIES := "fries"
@@ -106,7 +107,10 @@ func _physics_process(delta: float) -> void:
 		_wait_timer -= delta
 		if _wait_timer <= 0:
 			var rm = get_node("/root/RestaurantManager")
-			rm.add_money(15.50) # Pay
+			var order_total := 15.50
+			if rm != null and rm.has_method("get_food_price"):
+				order_total = float(rm.call("get_food_price", ordered_food_type))
+			rm.add_money(order_total) # Pay
 			_leave()
 			
 	elif state == State.LEAVING:
@@ -130,11 +134,15 @@ func _is_at_target() -> bool:
 func take_order(worker: Node) -> void:
 	if _has_ordered: return
 	_has_ordered = true
+	_ordered_at_seconds = Time.get_ticks_msec() / 1000.0
 	ordered_food_type = _choose_order_type()
 	_show_order_label()
+	var rm := get_node_or_null("/root/RestaurantManager")
+	if rm != null and rm.has_method("record_order_placed"):
+		rm.call("record_order_placed")
 	
 	var level = customer.get_tree().current_scene
-	var prep_station = level.find_child("BurgerPrepStation", true, false)
+	var prep_station = _choose_burger_prep_station(level)
 	var fryer_station = level.find_child("Fryer_1", true, false)
 	var food_table = level.find_child("FoodTable", true, false)
 	
@@ -143,6 +151,54 @@ func take_order(worker: Node) -> void:
 			tm.add_task(tm.TaskType.ASSEMBLE_BURGER, {"station": prep_station, "food_table": food_table, "customer": self, "food_type": ordered_food_type})
 		elif ordered_food_type == FOOD_FRIES and fryer_station != null:
 			tm.add_task(tm.TaskType.FRY_FRIES, {"station": fryer_station, "food_table": food_table, "customer": self, "food_type": ordered_food_type})
+
+func _choose_burger_prep_station(level: Node) -> Node:
+	var stations: Array[Node] = []
+	_collect_nodes_with_method(level, "assemble_default_burger", stations)
+	if stations.is_empty():
+		return null
+	stations.sort_custom(func(a: Node, b: Node) -> bool:
+		return String(a.get_path()).naturalnocasecmp_to(String(b.get_path())) < 0
+	)
+	var best_station: Node = null
+	var best_score := INF
+	for station in stations:
+		var score := float(_count_open_tasks_for_station(station))
+		if station.has_method("is_available") and not bool(station.call("is_available")):
+			score += 100.0
+		if station.has_method("is_burger_storage_full") and bool(station.call("is_burger_storage_full")):
+			score += 1000.0
+		if score < best_score:
+			best_score = score
+			best_station = station
+	return best_station
+
+func _count_open_tasks_for_station(station: Node) -> int:
+	if station == null:
+		return 0
+	var task_manager := get_node_or_null("/root/TaskManager")
+	if task_manager == null:
+		return 0
+	var count := 0
+	for task in _get_task_list(task_manager, "pending_tasks"):
+		if task != null and is_instance_valid(task) and task.get("args").get("station") == station:
+			count += 1
+	for task in _get_task_list(task_manager, "active_tasks"):
+		if task != null and is_instance_valid(task) and task.get("args").get("station") == station:
+			count += 1
+	return count
+
+func _get_task_list(task_manager: Node, property_name: String) -> Array:
+	var value: Variant = task_manager.get(property_name)
+	return value as Array if value is Array else []
+
+func _collect_nodes_with_method(node: Node, method_name: String, results: Array[Node]) -> void:
+	if node == null:
+		return
+	if node.has_method(method_name):
+		results.append(node)
+	for child in node.get_children():
+		_collect_nodes_with_method(child, method_name, results)
 
 func can_accept_delivery_task(reservation: Variant = null) -> bool:
 	if _food_received:
@@ -179,6 +235,9 @@ func receive_food(reservation: Variant = null, food_item: Node3D = null) -> bool
 	if food_item != null and is_instance_valid(food_item):
 		_attach_food_to_hand(food_item)
 	_food_received = true
+	var rm := get_node_or_null("/root/RestaurantManager")
+	if rm != null and rm.has_method("record_order_delivered") and _ordered_at_seconds > 0.0:
+		rm.call("record_order_delivered", Time.get_ticks_msec() / 1000.0 - _ordered_at_seconds)
 	clear_delivery_reservation(reservation)
 	if state == State.EATING:
 		_start_eating_motion()

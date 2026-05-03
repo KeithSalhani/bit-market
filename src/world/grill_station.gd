@@ -61,7 +61,7 @@ func get_look_target() -> Vector3:
 		return place_point.global_position
 	return global_position
 
-func cook_meat(worker: Node, raw_meat_pickup_position: Vector3, reach_controller: Node = null) -> int:
+func cook_meat(worker: Node, raw_meat_pickup_position: Vector3, reach_controller: Node = null, duration_multiplier: float = 1.0) -> int:
 	if worker == null:
 		return 0
 	if _is_busy and _reserved_worker != worker:
@@ -99,7 +99,7 @@ func cook_meat(worker: Node, raw_meat_pickup_position: Vector3, reach_controller
 
 	_set_grill_meat_visible(true)
 	_set_smoke_emitting(true)
-	await get_tree().create_timer(cook_seconds).timeout
+	await get_tree().create_timer(cook_seconds * maxf(duration_multiplier, 0.05)).timeout
 	_set_smoke_emitting(false)
 
 	await reach_controller.call("reach_to", pickup_point.global_position)

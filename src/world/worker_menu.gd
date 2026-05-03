@@ -158,6 +158,9 @@ func _spawn_worker() -> void:
 	worker_count += 1
 	worker.name = "WorkerNPC_%02d" % worker_count
 	workers_root.add_child(worker)
+	var ai := worker.get_node_or_null("WorkerAI")
+	if ai != null and ai.has_method("generate_worker_stats"):
+		ai.call("generate_worker_stats")
 	worker.global_position = _get_worker_spawn_position(worker_count - 1)
 	_select_worker(worker)
 

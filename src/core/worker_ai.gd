@@ -9,7 +9,44 @@ enum JobRole {
 	CATERER
 }
 
+class WorkerStats:
+	var movement_speed_pct := 0
+	var order_speed_pct := 0
+	var grill_speed_pct := 0
+	var fry_speed_pct := 0
+	var prep_speed_pct := 0
+	var delivery_speed_pct := 0
+	var delivery_capacity := 1
+
+	static func roll() -> WorkerStats:
+		var rolled := WorkerStats.new()
+		rolled.movement_speed_pct = randi_range(-10, 20)
+		rolled.order_speed_pct = randi_range(-20, 30)
+		rolled.grill_speed_pct = randi_range(-20, 30)
+		rolled.fry_speed_pct = randi_range(-20, 30)
+		rolled.prep_speed_pct = randi_range(-20, 30)
+		rolled.delivery_speed_pct = randi_range(-20, 30)
+		rolled.delivery_capacity = randi_range(1, 3)
+		return rolled
+
+	func to_display_parts() -> PackedStringArray:
+		return PackedStringArray([
+			"Move %s" % _format_pct(movement_speed_pct),
+			"Order %s" % _format_pct(order_speed_pct),
+			"Grill %s" % _format_pct(grill_speed_pct),
+			"Fry %s" % _format_pct(fry_speed_pct),
+			"Prep %s" % _format_pct(prep_speed_pct),
+			"Delivery %s" % _format_pct(delivery_speed_pct),
+			"Carry %d" % delivery_capacity
+		])
+
+	static func _format_pct(value: int) -> String:
+		if value > 0:
+			return "+%d%%" % value
+		return "%d%%" % value
+
 var job_role: int = JobRole.AUTO
+var stats: WorkerStats = null
 var current_action_label: String = "Idle"
 var current_task_type_label: String = "-"
 var target_customer_label: String = "-"
@@ -17,13 +54,51 @@ var target_customer_path: String = "-"
 var reason_text: String = "Waiting for task"
 var destination_text: String = "-"
 var _worker: CharacterBody3D
+var _base_move_speed := 3.4
 var _current_task: Object = null
 var _is_executing := false
 var _last_idle_station: Node = null
+var _pending_job_role := -1
+var _pending_job_role_reason := ""
+var _shift_started_at := 0.0
+var _task_started_at := 0.0
+var _last_delivery_batch_count := 1
+var _performance_counts := {
+	"orders": 0,
+	"meat_batches": 0,
+	"fries_batches": 0,
+	"burgers": 0,
+	"deliveries": 0,
+	"failed": 0,
+}
+var _performance_seconds := {
+	"orders": 0.0,
+	"meat_batches": 0.0,
+	"fries_batches": 0.0,
+	"burgers": 0.0,
+	"deliveries": 0.0,
+}
+var _observed_max_carry := 1
 
 func _ready() -> void:
 	_worker = get_parent() as CharacterBody3D
+	_shift_started_at = Time.get_ticks_msec() / 1000.0
+	if _worker != null:
+		_base_move_speed = float(_worker.get("move_speed"))
+	if stats == null:
+		generate_worker_stats()
+	else:
+		_apply_movement_stat()
 	call_deferred("_start_task_loop")
+
+func generate_worker_stats() -> void:
+	stats = WorkerStats.roll()
+	_apply_movement_stat()
+
+func get_stats_summary() -> String:
+	if stats == null:
+		return "-"
+	return ", ".join(stats.to_display_parts())
 
 func _start_task_loop() -> void:
 	var task_manager = get_node("/root/TaskManager")
@@ -33,11 +108,15 @@ func _start_task_loop() -> void:
 			if task != null:
 				_is_executing = true
 				_current_task = task
+				_task_started_at = Time.get_ticks_msec() / 1000.0
+				_last_delivery_batch_count = 1
 				_set_task_status(task, "Starting", "Task assigned")
 				await _execute_task(task)
+				_record_task_performance(task, Time.get_ticks_msec() / 1000.0 - _task_started_at)
 				task_manager.complete_task(task)
 				_current_task = null
 				_is_executing = false
+				_apply_pending_job_role_if_any()
 				_set_idle_status()
 				_move_to_assigned_idle_station()
 			else:
@@ -62,10 +141,17 @@ func _execute_task(task: Object) -> void:
 
 func _execute_process_order(task: Object) -> void:
 	_set_task_status(task, "Taking order", "Walking to register")
-	var customer = task.args.get("customer") as Node
-	var register_marker = task.args.get("register_marker") as Node3D
-	if not is_instance_valid(customer) or not is_instance_valid(register_marker): return
-	
+	var customer_value: Variant = task.args.get("customer")
+	var register_marker_value: Variant = task.args.get("register_marker")
+	if customer_value == null or not is_instance_valid(customer_value):
+		get_node("/root/TaskManager").fail_task(task)
+		return
+	if register_marker_value == null or not is_instance_valid(register_marker_value) or not (register_marker_value is Node3D):
+		get_node("/root/TaskManager").fail_task(task)
+		return
+	var customer := customer_value as Node
+	var register_marker := register_marker_value as Node3D
+		
 	var register = register_marker.get_parent()
 	var stand_point = register_marker
 	var register_look_target: Vector3 = register_marker.global_position
@@ -80,7 +166,7 @@ func _execute_process_order(task: Object) -> void:
 	
 	if is_instance_valid(customer) and customer.has_method("take_order"):
 		_set_task_status(task, "Taking order", "Customer is ordering")
-		await get_tree().create_timer(1.0).timeout
+		await get_tree().create_timer(_scaled_duration(1.0, _get_effective_speed_pct("order"))).timeout
 		customer.take_order(_worker)
 
 func _execute_cook_meat(task: Object) -> void:
@@ -115,7 +201,10 @@ func _execute_cook_meat(task: Object) -> void:
 		if grill.has_method("get_meat_pickup_point"):
 			var pt = grill.call("get_meat_pickup_point")
 			if pt: raw_pos = pt.global_position
-		var cooked_count = await grill.call("cook_meat", _worker, raw_pos, reach)
+		var duration_multiplier := _duration_multiplier(_get_effective_speed_pct("grill"))
+		_set_reach_timing_scale(reach, duration_multiplier)
+		var cooked_count = await grill.call("cook_meat", _worker, raw_pos, reach, duration_multiplier)
+		_reset_reach_timing_scale(reach)
 		if cooked_count > 0:
 			var prep = task.args.get("prep_station") as Node
 			if prep == null or not is_instance_valid(prep):
@@ -149,7 +238,10 @@ func _execute_fry_fries(task: Object) -> void:
 	var fried_outputs: Array[Node3D] = []
 	if fryer.has_method("fry_fries"):
 		_set_task_status(task, "Frying", "Frying fries")
-		var outputs = await fryer.call("fry_fries", _worker, reach)
+		var duration_multiplier := _duration_multiplier(_get_effective_speed_pct("fry"))
+		_set_reach_timing_scale(reach, duration_multiplier)
+		var outputs = await fryer.call("fry_fries", _worker, reach, duration_multiplier)
+		_reset_reach_timing_scale(reach)
 		if outputs is Array:
 			for o in outputs:
 				if o is Node3D: fried_outputs.append(o)
@@ -230,7 +322,11 @@ func _execute_assemble_burger(task: Object) -> void:
 		_worker.snap_to_station(snap, exit_pt)
 		
 	_set_task_status(task, "Assembling", "Building burger")
+	var prep_multiplier := _duration_multiplier(_get_effective_speed_pct("prep"))
+	var prep_reach := _get_reach_controller(_worker)
+	_set_reach_timing_scale(prep_reach, prep_multiplier)
 	var assembled = await prep.call("assemble_default_burger", _worker)
+	_reset_reach_timing_scale(prep_reach)
 	if assembled:
 		var table_stand = _get_food_table_worker_stand_point(food_table)
 		var table_storage = _get_food_table_burger_storage_point(food_table)
@@ -241,7 +337,9 @@ func _execute_assemble_burger(task: Object) -> void:
 		if _worker.has_method("snap_to_station"):
 			_worker.snap_to_station(snap, exit_pt)
 			
+		_set_reach_timing_scale(prep_reach, prep_multiplier)
 		var burger = await prep.call("pick_finished_burger_for_transport", _worker)
+		_reset_reach_timing_scale(prep_reach)
 		if burger:
 			burger.set_meta("food_type", food_type)
 			var carry = _attach_carried_food_to_hand(_worker, burger, "RightHand", "CarriedBurger", Vector3(0, -0.12, 0.04))
@@ -256,8 +354,10 @@ func _execute_assemble_burger(task: Object) -> void:
 				
 			var place_pos = _get_food_table_next_burger_position(food_table, table_storage)
 			var reach = _get_reach_controller(_worker)
+			_set_reach_timing_scale(reach, prep_multiplier)
 			if reach and reach.has_method("reach_to"):
 				await reach.call("reach_to", place_pos)
+			_reset_reach_timing_scale(reach)
 				
 			if food_table.has_method("store_food_item"):
 				food_table.call("store_food_item", burger, food_type)
@@ -293,13 +393,20 @@ func _execute_assemble_burger(task: Object) -> void:
 func _execute_deliver_food(task: Object) -> void:
 	_set_task_status(task, "Delivering", "Validating delivery")
 	var tm = get_node("/root/TaskManager")
-	var food_table = task.args.get("food_table") as Node
-	var customer = task.args.get("customer") as Node
-	var seat = task.args.get("seat") as Node3D
+	var food_table_value: Variant = task.args.get("food_table")
+	var customer_value: Variant = task.args.get("customer")
+	var seat_value: Variant = task.args.get("seat")
 	var food_type := String(task.args.get("food_type", ""))
-	if food_table == null or customer == null or seat == null:
+	if (
+		food_table_value == null or not is_instance_valid(food_table_value)
+		or customer_value == null or not is_instance_valid(customer_value)
+		or seat_value == null or not is_instance_valid(seat_value) or not (seat_value is Node3D)
+	):
 		tm.fail_task(task)
 		return
+	var food_table := food_table_value as Node
+	var customer := customer_value as Node
+	var seat := seat_value as Node3D
 	if not _delivery_is_valid(customer, task):
 		tm.fail_task(task)
 		return
@@ -309,72 +416,167 @@ func _execute_deliver_food(task: Object) -> void:
 	if table_stand == null or table_storage == null:
 		tm.fail_task(task)
 		return
-	
-	var food_item = null
-	while food_item == null and is_inside_tree() and is_instance_valid(customer):
-		if not _delivery_is_valid(customer, task):
-			tm.fail_task(task)
-			return
-		_set_task_status(task, "Delivering", "Waiting for food on table")
-		if food_table.has_method("get_first_food_item_by_type"):
-			food_item = food_table.call("get_first_food_item_by_type", food_type)
-		elif food_table.has_method("get_first_food_item"):
-			food_item = food_table.call("get_first_food_item")
-		if food_item == null:
-			await get_tree().create_timer(1.0).timeout
-			
-	if not is_instance_valid(customer) or food_item == null or not _delivery_is_valid(customer, task):
-		_return_food_to_table(food_table, food_item, food_type)
-		tm.fail_task(task)
-		return
-		
+
 	_set_task_status(task, "Delivering", "Walking to food table")
 	_move_worker_to(table_stand.global_position, table_storage.global_position)
 	await _wait_for_arrival()
 	if not _delivery_is_valid(customer, task):
-		_return_food_to_table(food_table, food_item, food_type)
 		tm.fail_task(task)
 		return
 	
 	if _worker.has_method("snap_to_station"):
 		_worker.snap_to_station(table_stand)
-		
+
+	var delivery_tasks: Array = [task]
+	var capacity := _get_effective_delivery_capacity()
+	if job_role == JobRole.CATERER and capacity > 1 and tm.has_method("claim_ready_delivery_tasks_for_worker"):
+		var extra_tasks: Array = tm.call("claim_ready_delivery_tasks_for_worker", _worker, task, capacity - 1)
+		delivery_tasks.append_array(extra_tasks)
+	_last_delivery_batch_count = delivery_tasks.size()
+	_observed_max_carry = maxi(_observed_max_carry, _last_delivery_batch_count)
+
 	var reach = _get_reach_controller(_worker)
-	if reach and reach.has_method("reach_to"):
-		await reach.call("reach_to", food_item.global_position)
-		
-	var carry = _attach_carried_food_to_hand(_worker, food_item, "RightHand", "CarriedFood", Vector3(0, -0.12, 0.04))
-	_set_carried_food_offsets([carry], Vector3(0, -0.24, 0.08))
-	if not _delivery_is_valid(customer, task):
-		if is_instance_valid(carry): carry.queue_free()
-		_return_food_to_table(food_table, food_item, food_type)
-		tm.fail_task(task)
+	var delivery_multiplier := _duration_multiplier(_get_effective_speed_pct("delivery"))
+	_set_reach_timing_scale(reach, delivery_multiplier)
+	var deliveries: Array[Dictionary] = []
+	for index in range(delivery_tasks.size()):
+		var delivery_task = delivery_tasks[index]
+		var delivery_customer := delivery_task.args.get("customer") as Node
+		var delivery_food_type := String(delivery_task.args.get("food_type", ""))
+		if not _delivery_is_valid(delivery_customer, delivery_task):
+			tm.fail_task(delivery_task)
+			continue
+
+		var food_item := _take_food_item_from_table(food_table, delivery_food_type)
+		if food_item == null:
+			tm.fail_task(delivery_task)
+			continue
+		if reach and reach.has_method("reach_to"):
+			await reach.call("reach_to", food_item.global_position)
+		var carry := _attach_carried_food_for_delivery(_worker, food_item, index)
+		deliveries.append({
+			"task": delivery_task,
+			"customer": delivery_customer,
+			"seat": delivery_task.args.get("seat") as Node3D,
+			"food_type": delivery_food_type,
+			"food_item": food_item,
+			"carry": carry
+		})
+	_reset_reach_timing_scale(reach)
+
+	if deliveries.is_empty():
 		return
-	
-	# Seat approach
-	var seat_approach = seat
-	if seat.has_meta("approach_path"):
-		seat_approach = seat.get_node(seat.get_meta("approach_path"))
-		
-	_set_task_status(task, "Delivering", "Walking to customer")
-	_move_worker_to(seat_approach.global_position, seat.global_position)
+
+	deliveries.sort_custom(_sort_deliveries_by_nearest_seat)
+	_set_carried_food_offsets(_get_delivery_carry_attachments(deliveries), Vector3(0, -0.24, 0.08))
+	for delivery in deliveries:
+		await _deliver_single_food_item(delivery, delivery_multiplier)
+
+func _take_food_item_from_table(food_table: Node, food_type: String) -> Node3D:
+	if food_table == null or not is_instance_valid(food_table):
+		return null
+	if food_table.has_method("get_first_food_item_by_type"):
+		return food_table.call("get_first_food_item_by_type", food_type) as Node3D
+	if food_table.has_method("get_first_food_item"):
+		return food_table.call("get_first_food_item") as Node3D
+	return null
+
+func _attach_carried_food_for_delivery(worker: Node3D, food_item: Node3D, slot_index: int) -> Node3D:
+	match slot_index:
+		0:
+			return _attach_carried_food_to_hand(worker, food_item, "RightHand", "CarriedFood", Vector3(0, -0.12, 0.04))
+		1:
+			return _attach_carried_food_to_hand(worker, food_item, "LeftHand", "CarriedFood", Vector3(0, -0.12, 0.04))
+	return _attach_carried_food_to_front(worker, food_item, "CarriedFoodFront", Vector3(0.0, 1.0, 0.32))
+
+func _attach_carried_food_to_front(worker: Node3D, food_item: Node3D, attachment_name: String, local_position: Vector3) -> Node3D:
+	if worker == null or food_item == null or not is_instance_valid(food_item):
+		return null
+	var carried_global_scale = food_item.global_transform.basis.get_scale()
+	var attachment := Node3D.new()
+	attachment.name = attachment_name
+	worker.add_child(attachment)
+	attachment.position = local_position
+	if food_item.get_parent() != null:
+		food_item.reparent(attachment, false)
+	else:
+		attachment.add_child(food_item)
+	food_item.visible = true
+	food_item.position = Vector3.ZERO
+	food_item.rotation_degrees = Vector3.ZERO
+	_apply_global_scale(food_item, carried_global_scale)
+	return attachment
+
+func _get_delivery_carry_attachments(deliveries: Array[Dictionary]) -> Array[Node3D]:
+	var attachments: Array[Node3D] = []
+	for delivery in deliveries:
+		var carry := delivery.get("carry") as Node3D
+		if carry != null:
+			attachments.append(carry)
+	return attachments
+
+func _sort_deliveries_by_nearest_seat(a: Dictionary, b: Dictionary) -> bool:
+	var a_seat := a.get("seat") as Node3D
+	var b_seat := b.get("seat") as Node3D
+	if a_seat == null:
+		return false
+	if b_seat == null:
+		return true
+	return _worker.global_position.distance_squared_to(a_seat.global_position) < _worker.global_position.distance_squared_to(b_seat.global_position)
+
+func _deliver_single_food_item(delivery: Dictionary, delivery_multiplier: float) -> void:
+	var tm = get_node("/root/TaskManager")
+	var delivery_task := delivery.get("task") as Object
+	var delivery_customer := delivery.get("customer") as Node
+	var delivery_seat := delivery.get("seat") as Node3D
+	var food_item := delivery.get("food_item") as Node3D
+	var food_type := String(delivery.get("food_type", ""))
+	var carry := delivery.get("carry") as Node3D
+	if delivery_task == null or delivery_customer == null or delivery_seat == null or food_item == null:
+		if food_item != null:
+			var failed_food_table: Node = null
+			if delivery_task != null:
+				failed_food_table = delivery_task.args.get("food_table") as Node
+			_return_food_to_table(failed_food_table, food_item, food_type)
+		if carry != null and is_instance_valid(carry):
+			carry.queue_free()
+		if delivery_task != null:
+			tm.fail_task(delivery_task)
+		return
+
+	var seat_approach = delivery_seat
+	if delivery_seat.has_meta("approach_path"):
+		seat_approach = delivery_seat.get_node(delivery_seat.get_meta("approach_path"))
+
+	_set_task_status(delivery_task, "Delivering", "Walking to customer")
+	_move_worker_to(seat_approach.global_position, delivery_seat.global_position)
 	await _wait_for_arrival()
-	
-	if not is_instance_valid(customer) or not _delivery_is_valid(customer, task):
-		if is_instance_valid(carry): carry.queue_free()
-		_return_food_to_table(food_table, food_item, food_type)
-		tm.fail_task(task)
+
+	if not is_instance_valid(delivery_customer) or not _delivery_is_valid(delivery_customer, delivery_task):
+		if carry != null and is_instance_valid(carry):
+			carry.queue_free()
+		_return_food_to_table(delivery_task.args.get("food_table") as Node, food_item, food_type)
+		tm.fail_task(delivery_task)
 		return
-		
-	if customer.has_method("receive_food"):
-		var received = bool(customer.call("receive_food", task, food_item))
-		if is_instance_valid(carry):
+
+	if delivery_customer.has_method("receive_food"):
+		var reach = _get_reach_controller(_worker)
+		_set_reach_timing_scale(reach, delivery_multiplier)
+		var received = bool(delivery_customer.call("receive_food", delivery_task, food_item))
+		_reset_reach_timing_scale(reach)
+		if carry != null and is_instance_valid(carry):
 			carry.queue_free()
 		if not received:
-			_return_food_to_table(food_table, food_item, food_type)
-			tm.fail_task(task)
+			_return_food_to_table(delivery_task.args.get("food_table") as Node, food_item, food_type)
+			tm.fail_task(delivery_task)
 			return
-		_set_task_status(task, "Delivered", "Customer received food")
+		_set_task_status(delivery_task, "Delivered", "Customer received food")
+		tm.complete_task(delivery_task)
+	else:
+		if carry != null and is_instance_valid(carry):
+			carry.queue_free()
+		_return_food_to_table(delivery_task.args.get("food_table") as Node, food_item, food_type)
+		tm.fail_task(delivery_task)
 
 func _move_worker_to(target_pos: Vector3, look_target: Variant = null) -> void:
 	if not is_instance_valid(_worker) or not _worker.is_inside_tree(): return
@@ -488,7 +690,7 @@ func _set_task_status(task: Object, action: String, reason: String) -> void:
 	var tm = get_node_or_null("/root/TaskManager")
 	current_task_type_label = str(tm.call("get_task_type_label", task.type)) if tm != null and tm.has_method("get_task_type_label") else str(task.type)
 	var customer = task.args.get("customer")
-	if customer is Node and is_instance_valid(customer):
+	if customer != null and is_instance_valid(customer) and customer is Node:
 		target_customer_label = String((customer as Node).name)
 		target_customer_path = String((customer as Node).get_path())
 	else:
@@ -511,8 +713,74 @@ func get_activity_status() -> Dictionary:
 		"customer": target_customer_label,
 		"customer_path": target_customer_path,
 		"reason": reason_text,
-		"destination": destination_text
+		"destination": destination_text,
+		"stats": get_stats_summary(),
+		"is_executing": _is_executing,
+		"pending_role": _get_job_role_label(_pending_job_role) if _pending_job_role >= 0 else "",
+		"performance": get_performance_summary(),
 	}
+
+func get_performance_summary() -> Dictionary:
+	var elapsed_minutes: float = maxf(0.1, ((Time.get_ticks_msec() / 1000.0) - _shift_started_at) / 60.0)
+	return {
+		"elapsed_minutes": elapsed_minutes,
+		"orders": int(_performance_counts["orders"]),
+		"burgers": int(_performance_counts["burgers"]),
+		"meat_batches": int(_performance_counts["meat_batches"]),
+		"fries_batches": int(_performance_counts["fries_batches"]),
+		"deliveries": int(_performance_counts["deliveries"]),
+		"failed": int(_performance_counts["failed"]),
+		"orders_per_min": float(_performance_counts["orders"]) / elapsed_minutes,
+		"burgers_per_min": float(_performance_counts["burgers"]) / elapsed_minutes,
+		"meat_batches_per_min": float(_performance_counts["meat_batches"]) / elapsed_minutes,
+		"fries_batches_per_min": float(_performance_counts["fries_batches"]) / elapsed_minutes,
+		"deliveries_per_min": float(_performance_counts["deliveries"]) / elapsed_minutes,
+		"avg_order_seconds": _avg_seconds("orders"),
+		"avg_burger_seconds": _avg_seconds("burgers"),
+		"avg_meat_seconds": _avg_seconds("meat_batches"),
+		"avg_fries_seconds": _avg_seconds("fries_batches"),
+		"avg_delivery_seconds": _avg_seconds("deliveries"),
+		"observed_max_carry": _observed_max_carry,
+	}
+
+func get_interview_summary() -> Dictionary:
+	return {
+		"delivery_capacity": stats.delivery_capacity if stats != null else 1,
+	}
+
+func is_executing_task() -> bool:
+	return _is_executing
+
+func _record_task_performance(task: Object, duration_seconds: float) -> void:
+	if task == null:
+		return
+	if String(task.get("status")) == "failed":
+		_performance_counts["failed"] = int(_performance_counts["failed"]) + 1
+		return
+	var tm = get_node_or_null("/root/TaskManager")
+	if tm == null:
+		return
+	match int(task.get("type")):
+		tm.TaskType.PROCESS_ORDER:
+			_add_performance_sample("orders", 1, duration_seconds)
+		tm.TaskType.COOK_MEAT:
+			_add_performance_sample("meat_batches", 1, duration_seconds)
+		tm.TaskType.FRY_FRIES:
+			_add_performance_sample("fries_batches", 1, duration_seconds)
+		tm.TaskType.ASSEMBLE_BURGER:
+			_add_performance_sample("burgers", 1, duration_seconds)
+		tm.TaskType.DELIVER_FOOD:
+			_add_performance_sample("deliveries", maxi(1, _last_delivery_batch_count), duration_seconds)
+
+func _add_performance_sample(key: String, amount: int, duration_seconds: float) -> void:
+	_performance_counts[key] = int(_performance_counts.get(key, 0)) + amount
+	_performance_seconds[key] = float(_performance_seconds.get(key, 0.0)) + maxf(0.0, duration_seconds)
+
+func _avg_seconds(key: String) -> float:
+	var count := int(_performance_counts.get(key, 0))
+	if count <= 0:
+		return 0.0
+	return float(_performance_seconds.get(key, 0.0)) / float(count)
 
 func get_job_role_options() -> Array[Dictionary]:
 	return [
@@ -529,9 +797,31 @@ func get_job_role_label() -> String:
 
 func set_job_role(role: int) -> void:
 	job_role = role
+	if _pending_job_role == role:
+		_pending_job_role = -1
+		_pending_job_role_reason = ""
 	_last_idle_station = null
 	if is_inside_tree() and not _is_executing:
 		_move_to_assigned_idle_station()
+
+func request_job_role(role: int, reason: String = "") -> bool:
+	if not _is_executing:
+		set_job_role(role)
+		return true
+	_pending_job_role = role
+	_pending_job_role_reason = reason
+	return false
+
+func get_pending_job_role_label() -> String:
+	return _get_job_role_label(_pending_job_role) if _pending_job_role >= 0 else ""
+
+func _apply_pending_job_role_if_any() -> void:
+	if _pending_job_role < 0:
+		return
+	var role := _pending_job_role
+	_pending_job_role = -1
+	_pending_job_role_reason = ""
+	set_job_role(role)
 
 func _get_job_role_label(role: int) -> String:
 	match role:
@@ -603,6 +893,53 @@ func _get_station_idle_look_target(station: Node, idle_point: Node3D) -> Variant
 
 func _format_vector(value: Vector3) -> String:
 	return "(%.1f, %.1f, %.1f)" % [value.x, value.y, value.z]
+
+func _apply_movement_stat() -> void:
+	if _worker == null or stats == null:
+		return
+	if _worker.has_method("set_move_speed"):
+		_worker.call("set_move_speed", _base_move_speed * maxf(0.25, 1.0 + (float(stats.movement_speed_pct) / 100.0)))
+
+func _get_effective_speed_pct(stat_name: String) -> int:
+	if stats == null:
+		return -10 if job_role == JobRole.AUTO and stat_name != "movement" else 0
+	var pct := 0
+	match stat_name:
+		"movement":
+			pct = stats.movement_speed_pct
+		"order":
+			pct = stats.order_speed_pct
+		"grill":
+			pct = stats.grill_speed_pct
+		"fry":
+			pct = stats.fry_speed_pct
+		"prep":
+			pct = stats.prep_speed_pct
+		"delivery":
+			pct = stats.delivery_speed_pct
+	if job_role == JobRole.AUTO and stat_name != "movement":
+		pct -= 10
+	return pct
+
+func _duration_multiplier(speed_pct: int) -> float:
+	return 1.0 / maxf(0.25, 1.0 + (float(speed_pct) / 100.0))
+
+func _scaled_duration(duration: float, speed_pct: int) -> float:
+	return duration * _duration_multiplier(speed_pct)
+
+func _set_reach_timing_scale(reach: Node, duration_multiplier: float) -> void:
+	if reach != null and reach.has_method("set_timing_scale"):
+		reach.call("set_timing_scale", duration_multiplier)
+
+func _reset_reach_timing_scale(reach: Node) -> void:
+	if reach != null and reach.has_method("reset_timing_scale"):
+		reach.call("reset_timing_scale")
+
+func _get_effective_delivery_capacity() -> int:
+	var capacity := stats.delivery_capacity if stats != null else 1
+	if job_role != JobRole.CATERER:
+		capacity = mini(capacity, 2)
+	return clampi(capacity, 1, 3)
 
 func _delivery_is_valid(customer: Node, task: Object) -> bool:
 	if customer == null or not is_instance_valid(customer):

@@ -30,11 +30,16 @@ var _station_exit_transform := Transform3D.IDENTITY
 
 func _ready() -> void:
 	add_to_group("worker_npc")
-	navigation_agent.max_speed = move_speed
+	set_move_speed(move_speed)
 	navigation_agent.path_desired_distance = waypoint_distance
 	navigation_agent.target_desired_distance = stopping_distance
 	set_selected(false)
 	_play_worker_animation(idle_animation)
+
+func set_move_speed(value: float) -> void:
+	move_speed = maxf(value, 0.1)
+	if navigation_agent != null:
+		navigation_agent.max_speed = move_speed
 
 func set_selected(value: bool) -> void:
 	_selected = value

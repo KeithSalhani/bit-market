@@ -1,7 +1,7 @@
 extends Node
 
 @export var worker_scene: PackedScene = preload("res://scenes/characters/worker.tscn")
-@export var initial_workers: int = 1
+@export var initial_workers: int = 4
 @export var spawn_spacing: float = 0.55
 @export_node_path("Node3D") var worker_spawn_point_path: NodePath = ^"../WorkerSpawnPoint"
 
@@ -12,23 +12,42 @@ func _ready() -> void:
 
 func _spawn_initial_workers() -> void:
 	for i in range(initial_workers):
-		hire_worker()
+		_spawn_worker(false)
 
 func hire_worker() -> void:
+	_spawn_worker(true)
+
+func _spawn_worker(charge_money: bool) -> void:
 	var rm = get_node("/root/RestaurantManager")
 	var cost = 100.0 # simple cost
-	if workers.size() > 0: # First worker is free
+	if charge_money and workers.size() > 0: # First worker is free
 		if not rm.spend_money(cost):
 			return
 			
 	var worker = worker_scene.instantiate() as CharacterBody3D
 	worker.name = "Worker_%d" % (workers.size() + 1)
 	get_parent().add_child(worker)
+	_assign_worker_stats(worker)
 	
 	var pos = _get_worker_spawn_position(workers.size())
 	
 	worker.global_position = pos
 	workers.append(worker)
+
+func fire_worker(worker_name: String) -> bool:
+	if workers.size() <= 1:
+		return false
+	for worker in workers:
+		if worker != null and is_instance_valid(worker) and String(worker.name) == worker_name:
+			workers.erase(worker)
+			worker.queue_free()
+			return true
+	return false
+
+func _assign_worker_stats(worker: Node) -> void:
+	var ai := worker.get_node_or_null("WorkerAI") if worker != null else null
+	if ai != null and ai.has_method("generate_worker_stats"):
+		ai.call("generate_worker_stats")
 
 func _get_worker_spawn_position(spawn_index: int) -> Vector3:
 	var spawn_point := _resolve_worker_spawn_point()
