@@ -22,34 +22,42 @@ The current restaurant scene is also staged as a rainy night environment. It use
 
 ## Video
 
-[Youtube Video](https://youtu.be/0DrXUjW8uA4)
+[![Watch the video](https://img.youtube.com/vi/0DrXUjW8uA4/maxresdefault.jpg)](https://youtu.be/0DrXUjW8uA4)
 
 ## Screenshots
 
 ![Main restaurant overview](readme/docs/screenshots/resteraunt.png)
+
 Resteraunt overview
 
 ![Kitchen stations](readme/docs/screenshots/kitchen.png)
+
 Kitchen
 
 ![Register queue and customers](readme/docs/screenshots/queue.png)
+
 Queue
 
 ![Customer eating flow](readme/docs/screenshots/sitting.png)
+
 Customers eating
 
 ## Animations
 
 ![Worker kitchen loop](readme/docs/animations/kitchen-flow.gif)
+
 Kitchen
 
 ![Burger assembly](readme/docs/animations/burger-prep.gif)
+
 Burger assembly
 
 ![Fries frying](readme/docs/animations/fryer.gif)
+
 Fries frying
 
 [Grill](readme/docs/animations/grill.gif)
+
 Grilling
 
 ## Audio
