@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://buoott8xo0ssp"
+path.s3tc="res://.godot/imported/BurgerPiz_Terminal.png-9605c701c2dcd5f0ac77c559160e4772.s3tc.ctex"
 path.etc2="res://.godot/imported/BurgerPiz_Terminal.png-9605c701c2dcd5f0ac77c559160e4772.etc2.ctex"
 metadata={
-"imported_formats": ["etc2_astc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
@@ -15,7 +16,7 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/map/BurgerPiz_Terminal.png"
-dest_files=["res://.godot/imported/BurgerPiz_Terminal.png-9605c701c2dcd5f0ac77c559160e4772.etc2.ctex"]
+dest_files=["res://.godot/imported/BurgerPiz_Terminal.png-9605c701c2dcd5f0ac77c559160e4772.s3tc.ctex", "res://.godot/imported/BurgerPiz_Terminal.png-9605c701c2dcd5f0ac77c559160e4772.etc2.ctex"]
 
 [params]
 

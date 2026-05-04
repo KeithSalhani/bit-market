@@ -3,16 +3,17 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dcadw0q6hgfa5"
+path.s3tc="res://.godot/imported/Character_18_Female_Police.png-8d7c9f81aca3c02a1f49cea8a9998545.s3tc.ctex"
 path.etc2="res://.godot/imported/Character_18_Female_Police.png-8d7c9f81aca3c02a1f49cea8a9998545.etc2.ctex"
 metadata={
-"imported_formats": ["etc2_astc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/characters/psx/Character_18_Female_Police.png"
-dest_files=["res://.godot/imported/Character_18_Female_Police.png-8d7c9f81aca3c02a1f49cea8a9998545.etc2.ctex"]
+dest_files=["res://.godot/imported/Character_18_Female_Police.png-8d7c9f81aca3c02a1f49cea8a9998545.s3tc.ctex", "res://.godot/imported/Character_18_Female_Police.png-8d7c9f81aca3c02a1f49cea8a9998545.etc2.ctex"]
 
 [params]
 

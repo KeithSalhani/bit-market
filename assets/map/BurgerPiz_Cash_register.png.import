@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://chkl4vpxgc7kw"
+path.s3tc="res://.godot/imported/BurgerPiz_Cash_register.png-834ce8c5c2ee2ef83ebd6c96daf74274.s3tc.ctex"
 path.etc2="res://.godot/imported/BurgerPiz_Cash_register.png-834ce8c5c2ee2ef83ebd6c96daf74274.etc2.ctex"
 metadata={
-"imported_formats": ["etc2_astc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
@@ -15,7 +16,7 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/map/BurgerPiz_Cash_register.png"
-dest_files=["res://.godot/imported/BurgerPiz_Cash_register.png-834ce8c5c2ee2ef83ebd6c96daf74274.etc2.ctex"]
+dest_files=["res://.godot/imported/BurgerPiz_Cash_register.png-834ce8c5c2ee2ef83ebd6c96daf74274.s3tc.ctex", "res://.godot/imported/BurgerPiz_Cash_register.png-834ce8c5c2ee2ef83ebd6c96daf74274.etc2.ctex"]
 
 [params]
 

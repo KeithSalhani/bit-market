@@ -29,24 +29,32 @@ TODO: Replace this placeholder with the final public YouTube demo link.
 TODO: Add final screenshots to `readme/docs/screenshots/`.
 
 ![Main restaurant overview](docs/screenshots/resteraunt.png)
+Resteraunt overview
 
 ![Kitchen stations](docs/screenshots/kitchen.png)
+Kitchen
 
 ![Register queue and customers](docs/screenshots/queue.png)
+Queue
 
 ![Customer eating flow](docs/screenshots/sitting.png)
+Customers eating
 
 ## Animations
 
 TODO: Add final GIFs or short captured clips to `readme/docs/animations/`.
 
-![Worker kitchen loop placeholder](docs/animations/kitchen-flow.gif)
+![Worker kitchen loop](docs/animations/kitchen-flow.gif)
+Kitchen
 
-![Burger assembly placeholder](docs/animations/burger-prep.gif)
+![Burger assembly](docs/animations/burger-prep.gif)
+Burger assembly
 
-![Fries frying placeholder](docs/animations/fryer.gif)
+![Fries frying](docs/animations/fryer.gif)
+Fries frying
 
-![Customer seating and eating placeholder](docs/animations/customer-seating-eating.gif)
+[Grill](docs/animations/grill.gif)
+Grilling
 
 ## Audio
 
@@ -67,15 +75,6 @@ Implemented audio assets include:
 - [Vehicle 2 engine turning off](../assets/vehicles/Sound%20effects/Car2_Engine_Turning_Off.ogg)
 - [Vehicle drive/acceleration sound](../assets/vehicles/Sound%20effects/Car_Acceleration.ogg)
 - [Vehicle drive/acceleration sound 2](../assets/vehicles/Sound%20effects/Car_Acceleration_2.ogg)
-- [Vehicle engine startup](../assets/vehicles/Sound%20effects/Car_Engine_Start_Up.ogg)
-- [Vehicle engine turning off](../assets/vehicles/Sound%20effects/Car_Engine_Turning_Off.ogg)
-- [Vehicle door close](../assets/vehicles/Sound%20effects/Car_Door_Close.ogg)
-- [Vehicle door open](../assets/vehicles/Sound%20effects/Car_Door_Open.ogg)
-- [Vehicle hood close](../assets/vehicles/Sound%20effects/Car_Hood_Close.ogg)
-- [Vehicle hood open](../assets/vehicles/Sound%20effects/Car_Hood_Open.ogg)
-- [Vehicle horn](../assets/vehicles/Sound%20effects/Car_Horn.ogg)
-- [Vehicle parking brake](../assets/vehicles/Sound%20effects/Car_Parking_Brake.ogg)
-- [Vehicle trunk open](../assets/vehicles/Sound%20effects/Car_Trunk_Open.ogg)
 
 # Instructions
 
@@ -105,7 +104,7 @@ Example local config:
 ```json
 {
   "provider": "gemini",
-  "model": "gemini-flash-latest",
+  "model": "gemini-3.1-flash-lite",
   "api_key": "YOUR_GEMINI_API_KEY",
   "timeout_seconds": 12,
   "enabled": true,

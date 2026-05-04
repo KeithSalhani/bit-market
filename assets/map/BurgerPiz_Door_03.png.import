@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cpx55f5agdjym"
+path.s3tc="res://.godot/imported/BurgerPiz_Door_03.png-1921e77dc04b0a6a908cd3342be77e32.s3tc.ctex"
 path.etc2="res://.godot/imported/BurgerPiz_Door_03.png-1921e77dc04b0a6a908cd3342be77e32.etc2.ctex"
 metadata={
-"imported_formats": ["etc2_astc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
@@ -15,7 +16,7 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/map/BurgerPiz_Door_03.png"
-dest_files=["res://.godot/imported/BurgerPiz_Door_03.png-1921e77dc04b0a6a908cd3342be77e32.etc2.ctex"]
+dest_files=["res://.godot/imported/BurgerPiz_Door_03.png-1921e77dc04b0a6a908cd3342be77e32.s3tc.ctex", "res://.godot/imported/BurgerPiz_Door_03.png-1921e77dc04b0a6a908cd3342be77e32.etc2.ctex"]
 
 [params]
 

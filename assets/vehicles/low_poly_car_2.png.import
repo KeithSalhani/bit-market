@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cgam33v4uvfax"
+path.s3tc="res://.godot/imported/low_poly_car_2.png-58d83c34d8505750aad28f06dde6ade0.s3tc.ctex"
 path.etc2="res://.godot/imported/low_poly_car_2.png-58d83c34d8505750aad28f06dde6ade0.etc2.ctex"
 metadata={
-"imported_formats": ["etc2_astc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
@@ -15,7 +16,7 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/vehicles/low_poly_car_2.png"
-dest_files=["res://.godot/imported/low_poly_car_2.png-58d83c34d8505750aad28f06dde6ade0.etc2.ctex"]
+dest_files=["res://.godot/imported/low_poly_car_2.png-58d83c34d8505750aad28f06dde6ade0.s3tc.ctex", "res://.godot/imported/low_poly_car_2.png-58d83c34d8505750aad28f06dde6ade0.etc2.ctex"]
 
 [params]
 

@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bjsneto4ij3km"
+path.s3tc="res://.godot/imported/gman_hl1_2.png-4eb3166f719e2af5640a94784cccdcca.s3tc.ctex"
 path.etc2="res://.godot/imported/gman_hl1_2.png-4eb3166f719e2af5640a94784cccdcca.etc2.ctex"
 metadata={
-"imported_formats": ["etc2_astc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
@@ -15,7 +16,7 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/characters/psx/gman_hl1_2.png"
-dest_files=["res://.godot/imported/gman_hl1_2.png-4eb3166f719e2af5640a94784cccdcca.etc2.ctex"]
+dest_files=["res://.godot/imported/gman_hl1_2.png-4eb3166f719e2af5640a94784cccdcca.s3tc.ctex", "res://.godot/imported/gman_hl1_2.png-4eb3166f719e2af5640a94784cccdcca.etc2.ctex"]
 
 [params]
 

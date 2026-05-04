@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bqts6qu1netw0"
+path.s3tc="res://.godot/imported/BurgerPiz_AsphaltDamaged.jpg-35e930cfbabf61ac320294e0db7f29fe.s3tc.ctex"
 path.etc2="res://.godot/imported/BurgerPiz_AsphaltDamaged.jpg-35e930cfbabf61ac320294e0db7f29fe.etc2.ctex"
 metadata={
-"imported_formats": ["etc2_astc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
@@ -15,7 +16,7 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/map/BurgerPiz_AsphaltDamaged.jpg"
-dest_files=["res://.godot/imported/BurgerPiz_AsphaltDamaged.jpg-35e930cfbabf61ac320294e0db7f29fe.etc2.ctex"]
+dest_files=["res://.godot/imported/BurgerPiz_AsphaltDamaged.jpg-35e930cfbabf61ac320294e0db7f29fe.s3tc.ctex", "res://.godot/imported/BurgerPiz_AsphaltDamaged.jpg-35e930cfbabf61ac320294e0db7f29fe.etc2.ctex"]
 
 [params]
 

@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://r3eeudwcnfyk"
+path.s3tc="res://.godot/imported/male-07_v1_3.png-116f42d5d16eeb4256d1ebc85db066e6.s3tc.ctex"
 path.etc2="res://.godot/imported/male-07_v1_3.png-116f42d5d16eeb4256d1ebc85db066e6.etc2.ctex"
 metadata={
-"imported_formats": ["etc2_astc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
@@ -15,7 +16,7 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/characters/male-07_v1_3.png"
-dest_files=["res://.godot/imported/male-07_v1_3.png-116f42d5d16eeb4256d1ebc85db066e6.etc2.ctex"]
+dest_files=["res://.godot/imported/male-07_v1_3.png-116f42d5d16eeb4256d1ebc85db066e6.s3tc.ctex", "res://.godot/imported/male-07_v1_3.png-116f42d5d16eeb4256d1ebc85db066e6.etc2.ctex"]
 
 [params]
 

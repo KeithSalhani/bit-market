@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cknar8a3pv6cs"
+path.s3tc="res://.godot/imported/BurgerPiz_Toilet.png-6c6d15c95e128f482503300bad11bdc6.s3tc.ctex"
 path.etc2="res://.godot/imported/BurgerPiz_Toilet.png-6c6d15c95e128f482503300bad11bdc6.etc2.ctex"
 metadata={
-"imported_formats": ["etc2_astc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
@@ -15,7 +16,7 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/map/BurgerPiz_Toilet.png"
-dest_files=["res://.godot/imported/BurgerPiz_Toilet.png-6c6d15c95e128f482503300bad11bdc6.etc2.ctex"]
+dest_files=["res://.godot/imported/BurgerPiz_Toilet.png-6c6d15c95e128f482503300bad11bdc6.s3tc.ctex", "res://.godot/imported/BurgerPiz_Toilet.png-6c6d15c95e128f482503300bad11bdc6.etc2.ctex"]
 
 [params]
 

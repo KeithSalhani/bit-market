@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://1lbf4lvc2np"
+path.s3tc="res://.godot/imported/low-poly_burger_0.png-6a0f36469f9fd5b8c38c6c726a05d0f8.s3tc.ctex"
 path.etc2="res://.godot/imported/low-poly_burger_0.png-6a0f36469f9fd5b8c38c6c726a05d0f8.etc2.ctex"
 metadata={
-"imported_formats": ["etc2_astc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
@@ -15,7 +16,7 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/objects/low-poly_burger_0.png"
-dest_files=["res://.godot/imported/low-poly_burger_0.png-6a0f36469f9fd5b8c38c6c726a05d0f8.etc2.ctex"]
+dest_files=["res://.godot/imported/low-poly_burger_0.png-6a0f36469f9fd5b8c38c6c726a05d0f8.s3tc.ctex", "res://.godot/imported/low-poly_burger_0.png-6a0f36469f9fd5b8c38c6c726a05d0f8.etc2.ctex"]
 
 [params]
 

@@ -3,16 +3,17 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://d2ux5a3i2jtn5"
+path.s3tc="res://.godot/imported/car5_taxi.png-3863546f6624bb2478bbbeae550ae392.s3tc.ctex"
 path.etc2="res://.godot/imported/car5_taxi.png-3863546f6624bb2478bbbeae550ae392.etc2.ctex"
 metadata={
-"imported_formats": ["etc2_astc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/vehicles/Car 05/car5_taxi.png"
-dest_files=["res://.godot/imported/car5_taxi.png-3863546f6624bb2478bbbeae550ae392.etc2.ctex"]
+dest_files=["res://.godot/imported/car5_taxi.png-3863546f6624bb2478bbbeae550ae392.s3tc.ctex", "res://.godot/imported/car5_taxi.png-3863546f6624bb2478bbbeae550ae392.etc2.ctex"]
 
 [params]
 
