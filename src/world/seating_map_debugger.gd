@@ -4,7 +4,7 @@ extends Node3D
 @export_node_path("Node3D") var source_map_path: NodePath = ^"../BurgerPiz2"
 @export var rebuild_in_editor := true
 @export var rebuild_on_ready := true
-@export var show_debug_labels := true:
+@export var show_debug_labels := false:
 	set(value):
 		show_debug_labels = value
 		_set_labels_visible(value)
@@ -100,7 +100,7 @@ extends Node3D
 	set(value):
 		seated_visual_height_offset = value
 		_queue_editor_rebuild()
-@export var print_summary := true
+@export var print_summary := false
 
 var tables: Array[Node3D] = []
 var chairs: Array[Node3D] = []

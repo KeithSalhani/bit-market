@@ -14,18 +14,6 @@ var _stored_food_items: Array[Node3D] = []
 func _ready() -> void:
 	_resize_storage()
 
-func has_burger_capacity() -> bool:
-	return has_food_capacity()
-
-func get_available_burger_capacity() -> int:
-	return get_available_food_capacity()
-
-func get_next_burger_position() -> Vector3:
-	return get_next_food_position()
-
-func store_burger(burger: Node3D) -> bool:
-	return store_food_item(burger)
-
 func has_food_capacity() -> bool:
 	_resize_storage()
 	return _get_next_open_slot() != -1
@@ -53,13 +41,17 @@ func get_first_food_item_by_type(food_type: String = "") -> Node3D:
 	return null
 
 func has_food_item(food_type: String = "") -> bool:
+	return get_food_item_count(food_type) > 0
+
+func get_food_item_count(food_type: String = "") -> int:
+	var count := 0
 	for index in range(_stored_food_items.size()):
 		var food_item := _stored_food_items[index]
 		if food_item != null and is_instance_valid(food_item) and _food_item_matches_type(food_item, food_type):
-			return true
+			count += 1
 		if food_item != null and not is_instance_valid(food_item):
 			_stored_food_items[index] = null
-	return false
+	return count
 
 func get_next_food_position() -> Vector3:
 	var slot_index := _get_next_open_slot()

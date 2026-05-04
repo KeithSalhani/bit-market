@@ -276,31 +276,6 @@ func _get_batch_offsets() -> Array[Vector3]:
 		Vector3(grilled_meat_spacing.x, 0.0, grilled_meat_spacing.y),
 	]
 
-func _make_smoke_mesh() -> Mesh:
-	var mesh := SphereMesh.new()
-	mesh.radius = 0.035
-	mesh.height = 0.07
-	mesh.radial_segments = 8
-	mesh.rings = 4
-	var material := StandardMaterial3D.new()
-	material.albedo_color = Color(0.78, 0.78, 0.72, 0.42)
-	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mesh.material = material
-	return mesh
-
-func _make_smoke_material() -> ParticleProcessMaterial:
-	var material := ParticleProcessMaterial.new()
-	material.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
-	material.emission_sphere_radius = 0.08
-	material.direction = Vector3.UP
-	material.spread = 18.0
-	material.gravity = Vector3(0.0, 0.35, 0.0)
-	material.initial_velocity_min = 0.16
-	material.initial_velocity_max = 0.34
-	material.scale_min = 0.45
-	material.scale_max = 1.15
-	return material
-
 func _get_reach_controller(worker: Node) -> Node:
 	var configured := worker.get_node_or_null(^"WorkerReachController")
 	if configured != null:

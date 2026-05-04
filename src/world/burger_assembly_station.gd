@@ -17,7 +17,7 @@ const VFX := preload("res://src/world/restaurant_vfx_factory.gd")
 @export var ingredient_contact_height := 0.12
 @export var ingredient_front_offset := 0.16
 @export var burger_place_height := 0.18
-@export var prep_hand_target_rotation_degrees := Vector3(-90.0, 0.0, 90.0)
+@export var prep_hand_local_rotation_degrees := Vector3(90.0, 0.0, 90.0)
 @export var burger_storage_spacing := Vector2(0.22, 0.22)
 @export var default_recipe := PackedStringArray(["meat", "cheese", "pickles", "onion", "lettuce"])
 @export var station_vfx_enabled := true
@@ -157,7 +157,7 @@ func assemble_burger(worker: Node, recipe: PackedStringArray) -> bool:
 		var pickup_position := target.global_position if _using_explicit_reach_target else _get_ingredient_contact_position(target)
 		var place_position := _get_burger_place_position(layer_index)
 		if reach_controller.has_method("pick_and_place"):
-			await reach_controller.call("pick_and_place", pickup_position, place_position, place_position, prep_hand_target_rotation_degrees)
+			await reach_controller.call("pick_and_place", pickup_position, place_position, place_position, Vector3.ZERO, _get_prep_hand_target_basis())
 		else:
 			await reach_controller.call("reach_to", pickup_position)
 			await reach_controller.call("reach_to", place_position)
@@ -204,29 +204,6 @@ func get_finished_burger_count() -> int:
 		else:
 			_stored_burgers[index] = null
 	return count
-
-func debug_add_cooked_meat(amount := 4) -> void:
-	stock_cooked_meat(amount)
-
-func debug_create_finished_burger() -> bool:
-	if is_burger_storage_full():
-		show_storage_full()
-		return false
-
-	var assembly_point := get_assembly_point()
-	if assembly_point == null:
-		push_warning("Burger prep station cannot debug-create burger: BurgerAssemblyPoint is missing.")
-		return false
-
-	if _current_burger != null and is_instance_valid(_current_burger):
-		await _store_finished_burger(null, null)
-	if _current_burger != null and is_instance_valid(_current_burger):
-		show_storage_full()
-		return false
-
-	_replace_with_finished_burger(assembly_point)
-	await _store_finished_burger(null, null)
-	return true
 
 func pick_finished_burger_for_transport(worker: Node) -> Node3D:
 	if _is_busy and _reserved_worker != worker:
@@ -457,11 +434,13 @@ func _get_burger_place_position(layer_index: int) -> Vector3:
 		return global_position
 	return assembly_point.global_position + Vector3.UP * (burger_place_height + float(layer_index) * layer_spacing * burger_scale.y)
 
-func _get_raw_meat_pickup_position() -> Vector3:
-	var target := _find_ingredient_target("meat")
-	if target == null:
-		return global_position
-	return target.global_position if _using_explicit_reach_target else _get_ingredient_contact_position(target)
+func _get_prep_hand_target_basis() -> Basis:
+	var local_basis := Basis.from_euler(Vector3(
+		deg_to_rad(prep_hand_local_rotation_degrees.x),
+		deg_to_rad(prep_hand_local_rotation_degrees.y),
+		deg_to_rad(prep_hand_local_rotation_degrees.z)
+	))
+	return (global_transform.basis.orthonormalized() * local_basis).orthonormalized()
 
 func _get_grill_station() -> Node3D:
 	return get_node_or_null(grill_station_path) as Node3D

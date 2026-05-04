@@ -85,7 +85,7 @@ func spawn_customer_now() -> CharacterBody3D:
 	if spawn_point != null:
 		customer.global_position = _get_spawn_position(spawn_point)
 	else:
-		customer.global_position = Vector3(0, 0.6, 10) # Fallback
+		customer.global_position = Vector3(0, 0.6, 10)
 	
 	# Add CustomerAI component
 	var ai = Node.new()

@@ -33335,7 +33335,7 @@ burger_storage_spacing = Vector2(0.11, 0.11)
 default_recipe = PackedStringArray("meat", "cheese", "pickles", "onion", "lettuce")
 
 [node name="WorkerPrepSnapPoint" type="Marker3D" parent="Kitchen/Preperation_Shelf/prep_shelf/BurgerPrepStation" unique_id=621542485]
-transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -0.02960515, -0.59093416, 0.34)
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -0.02960515, -0.59093416, 0.5295198)
 
 [node name="WorkerPrepEntrancePoint" type="Marker3D" parent="Kitchen/Preperation_Shelf/prep_shelf/BurgerPrepStation" unique_id=1051261442]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.02960515, -0.20472345, 1.25)
@@ -33456,7 +33456,7 @@ burger_storage_spacing = Vector2(0.11, 0.11)
 default_recipe = PackedStringArray("meat", "cheese", "pickles", "onion", "lettuce")
 
 [node name="WorkerPrepSnapPoint" type="Marker3D" parent="Kitchen/Preperation_Shelf2/prep_shelf/BurgerPrepStation" unique_id=106012288]
-transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -0.02960515, -0.59093416, 0.34)
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -0.02960515, -0.59093416, 0.52857983)
 
 [node name="WorkerPrepEntrancePoint" type="Marker3D" parent="Kitchen/Preperation_Shelf2/prep_shelf/BurgerPrepStation" unique_id=599998914]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.02960515, -0.20472345, 1.25)
@@ -33616,7 +33616,9 @@ shape = SubResource("ConcavePolygonShape3D_s5vrc")
 
 [node name="FoodTable" type="Node" parent="Kitchen" unique_id=137745471]
 script = ExtResource("9_foodtable")
+burger_capacity = 28
 burger_column_spacing = 0.16
+burger_row_spacing = 0.46
 
 [node name="Shelf_C_001" type="MeshInstance3D" parent="Kitchen/FoodTable" unique_id=1846775306]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.9297209, 0.6318961, 6.064374)
@@ -33628,7 +33630,7 @@ mesh = SubResource("ArrayMesh_vyn4w")
 shape = SubResource("ConcavePolygonShape3D_4upl5")
 
 [node name="BurgerStoragePoint" type="Node3D" parent="Kitchen/FoodTable/Shelf_C_001" unique_id=185116144]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.37786615, 0.43673557, -0.059019566)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.20732534, 0.43673557, -0.24133968)
 
 [node name="WorkerStandPoint" type="Node3D" parent="Kitchen/FoodTable/Shelf_C_001" unique_id=711338771]
 transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0.41680908, -0.62052053, 0.59918785)

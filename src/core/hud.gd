@@ -553,8 +553,6 @@ func _on_worker_role_selected(index: int, worker: Node, option: OptionButton) ->
 	var role_id := option.get_item_id(index)
 	if ai.has_method("set_job_role"):
 		ai.call("set_job_role", role_id)
-	else:
-		ai.job_role = role_id
 
 func _set_worker_role_option_selection(option: OptionButton, worker: Node) -> void:
 	if option == null or worker == null or not is_instance_valid(worker):
@@ -574,11 +572,4 @@ func _set_worker_role_option_selection(option: OptionButton, worker: Node) -> vo
 func _get_worker_role_options(ai: Node) -> Array[Dictionary]:
 	if ai != null and ai.has_method("get_job_role_options"):
 		return ai.call("get_job_role_options")
-	return [
-		{"id": 0, "label": "Auto"},
-		{"id": 1, "label": "Cashier"},
-		{"id": 2, "label": "Meat Griller"},
-		{"id": 3, "label": "Burger Prepper"},
-		{"id": 4, "label": "Fries Fryer"},
-		{"id": 5, "label": "Caterer"}
-	]
+	return []

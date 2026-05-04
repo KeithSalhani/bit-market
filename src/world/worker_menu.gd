@@ -10,10 +10,10 @@ extends Node3D
 @export var food_table_path: NodePath = ^"../Kitchen/FoodTable"
 @export var fryer_1_path: NodePath = ^"../Kitchen/Fryer_1"
 @export var fryer_2_path: NodePath = ^"../Kitchen/Fryer_2"
-@export var carried_burger_hand_offset := Vector3(0.0, -0.12, 0.04)
-@export var carried_burger_walk_offset := Vector3(0.0, -0.24, 0.08)
-@export var carried_fries_hand_offset := Vector3(0.0, -0.08, 0.04)
-@export var carried_fries_walk_offset := Vector3(0.0, -0.18, 0.07)
+@export var carried_burger_hand_offset := Vector3(0.0, 0.08, 0.06)
+@export var carried_burger_walk_offset := Vector3(0.0, 0.1, 0.1)
+@export var carried_fries_hand_offset := Vector3(0.0, 0.08, 0.06)
+@export var carried_fries_walk_offset := Vector3(0.0, 0.1, 0.1)
 
 var workers_root: Node3D
 var seating_map: Node3D
@@ -26,8 +26,6 @@ var send_button: Button
 var prep_button: Button
 var transport_burger_button: Button
 var fry_fries_button: Button
-var debug_add_meat_button: Button
-var debug_create_burger_button: Button
 var spawn_customer_button: Button
 
 func _ready() -> void:
@@ -129,16 +127,6 @@ func _build_menu() -> void:
 	fry_fries_button.disabled = true
 	fry_fries_button.pressed.connect(_fry_selected_worker_fries)
 	layout.add_child(fry_fries_button)
-
-	debug_add_meat_button = Button.new()
-	debug_add_meat_button.text = "Debug: add meat"
-	debug_add_meat_button.pressed.connect(_debug_add_meat_to_prep)
-	layout.add_child(debug_add_meat_button)
-
-	debug_create_burger_button = Button.new()
-	debug_create_burger_button.text = "Debug: create burger"
-	debug_create_burger_button.pressed.connect(_debug_create_finished_burger)
-	layout.add_child(debug_create_burger_button)
 
 	status_label = Label.new()
 	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -349,8 +337,8 @@ func _transport_finished_burger_to_food_table() -> void:
 		if reach_controller != null and reach_controller.has_method("reach_to"):
 			await reach_controller.call("reach_to", table_place_position)
 
-		if food_table.has_method("store_burger"):
-			if not bool(food_table.call("store_burger", burger)):
+		if food_table.has_method("store_food_item"):
+			if not bool(food_table.call("store_food_item", burger, "burger")):
 				_set_status_message("Food table full.")
 				_cleanup_carry_attachments(carry_attachments)
 				return
@@ -467,12 +455,7 @@ func _fry_selected_worker_fries() -> void:
 			await reach_controller.call("reach_to", table_place_position)
 
 		if food_table.has_method("store_food_item"):
-			if not bool(food_table.call("store_food_item", fries)):
-				_set_status_message("Food table full.")
-				_cleanup_carry_attachments(carry_attachments)
-				return
-		elif food_table.has_method("store_burger"):
-			if not bool(food_table.call("store_burger", fries)):
+			if not bool(food_table.call("store_food_item", fries, "fries")):
 				_set_status_message("Food table full.")
 				_cleanup_carry_attachments(carry_attachments)
 				return
@@ -487,32 +470,6 @@ func _fry_selected_worker_fries() -> void:
 			attachment.queue_free()
 	_cleanup_carry_attachments(carry_attachments)
 	_set_status_message("%s moved %d fries to the food table." % [worker.name, carry_count])
-
-func _debug_add_meat_to_prep() -> void:
-	var prep_station := _resolve_prep_station()
-	if prep_station == null:
-		_set_status_message("Burger prep station missing.")
-		return
-	if prep_station.has_method("debug_add_cooked_meat"):
-		prep_station.call("debug_add_cooked_meat", 4)
-	elif prep_station.has_method("stock_cooked_meat"):
-		prep_station.call("stock_cooked_meat", 4)
-	_set_status_message("Added 4 cooked meat to prep.")
-
-func _debug_create_finished_burger() -> void:
-	var prep_station := _resolve_prep_station()
-	if prep_station == null:
-		_set_status_message("Burger prep station missing.")
-		return
-	if not prep_station.has_method("debug_create_finished_burger"):
-		_set_status_message("Debug burger create unavailable.")
-		return
-
-	var created: bool = bool(await prep_station.call("debug_create_finished_burger"))
-	if created:
-		_set_status_message("Created finished burger.")
-	else:
-		_set_status_message("Burger storage full.")
 
 func _select_worker(worker: CharacterBody3D) -> void:
 	if selected_worker != null and selected_worker.has_method("set_selected"):
@@ -533,8 +490,6 @@ func _on_role_option_selected(index: int) -> void:
 	var role_id := role_option_button.get_item_id(index)
 	if ai.has_method("set_job_role"):
 		ai.call("set_job_role", role_id)
-	else:
-		ai.job_role = role_id
 	_set_status_message("%s role: %s." % [selected_worker.name, _get_worker_role_label(selected_worker)])
 
 func _move_worker_to(worker: CharacterBody3D, target_position: Vector3, look_target: Variant = null, release_station_snap := true) -> void:
@@ -665,10 +620,6 @@ func _get_food_table_burger_storage_point(food_table: Node) -> Node3D:
 func _get_food_table_available_capacity(food_table: Node) -> int:
 	if food_table.has_method("get_available_food_capacity"):
 		return int(food_table.call("get_available_food_capacity"))
-	if food_table.has_method("get_available_burger_capacity"):
-		return int(food_table.call("get_available_burger_capacity"))
-	if food_table.has_method("has_burger_capacity"):
-		return 1 if bool(food_table.call("has_burger_capacity")) else 0
 	return 1
 
 func _get_food_table_next_burger_position(food_table: Node, fallback_storage_point: Node3D) -> Vector3:
@@ -676,10 +627,6 @@ func _get_food_table_next_burger_position(food_table: Node, fallback_storage_poi
 		var called_food_position: Variant = food_table.call("get_next_food_position")
 		if called_food_position is Vector3:
 			return called_food_position
-	if food_table.has_method("get_next_burger_position"):
-		var called_position: Variant = food_table.call("get_next_burger_position")
-		if called_position is Vector3:
-			return called_position
 	return fallback_storage_point.global_position
 
 func _get_prep_finished_burger_count(prep_station: Node) -> int:
@@ -880,7 +827,7 @@ func _populate_role_options(worker: CharacterBody3D) -> void:
 		return
 	role_option_button.clear()
 	var ai := worker.get_node_or_null("WorkerAI") if worker != null else null
-	var role_options: Array = ai.call("get_job_role_options") if ai != null and ai.has_method("get_job_role_options") else _get_fallback_role_options()
+	var role_options: Array = ai.call("get_job_role_options") if ai != null and ai.has_method("get_job_role_options") else []
 	var selected_index := 0
 	var selected_role := int(ai.job_role) if ai != null else 0
 	for index in range(role_options.size()):
@@ -899,17 +846,4 @@ func _get_worker_role_label(worker: CharacterBody3D) -> String:
 		return "Auto"
 	if ai.has_method("get_job_role_label"):
 		return String(ai.call("get_job_role_label"))
-	for role in _get_fallback_role_options():
-		if int(role.get("id", -1)) == int(ai.job_role):
-			return String(role.get("label", "Auto"))
 	return "Auto"
-
-func _get_fallback_role_options() -> Array[Dictionary]:
-	return [
-		{"id": 0, "label": "Auto"},
-		{"id": 1, "label": "Cashier"},
-		{"id": 2, "label": "Meat Griller"},
-		{"id": 3, "label": "Burger Prepper"},
-		{"id": 4, "label": "Fries Fryer"},
-		{"id": 5, "label": "Caterer"}
-	]

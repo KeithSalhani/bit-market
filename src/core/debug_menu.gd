@@ -4,15 +4,13 @@ extends PanelContainer
 @onready var root_container: VBoxContainer = $VBoxContainer
 @onready var workers_container: VBoxContainer = $VBoxContainer/WorkersContainer
 
-var _worker_options: Dictionary = {}
 var _price_spinboxes: Dictionary = {}
 var _syncing_prices := false
 
 func _ready() -> void:
-	visible = false # hide by default
+	visible = false
 	_build_price_controls()
 	
-	# Try find customer manager
 	var tree = get_tree()
 	if tree and tree.current_scene:
 		var cm = tree.current_scene.find_child("CustomerManager", true, false)
@@ -20,14 +18,12 @@ func _ready() -> void:
 			max_customers_spinbox.value = cm.max_customers
 			max_customers_spinbox.value_changed.connect(_on_max_customers_changed)
 			
-	# Watch for new workers
 	get_tree().node_added.connect(_on_node_added)
 	
-	# Initial workers
 	_refresh_workers()
 
 func _process(_delta: float) -> void:
-	if Input.is_action_just_pressed("ui_cancel"): # Or another key if configured
+	if Input.is_action_just_pressed("ui_cancel"):
 		visible = !visible
 
 func _on_max_customers_changed(value: float) -> void:
@@ -100,12 +96,12 @@ func _refresh_workers() -> void:
 	for child in workers_container.get_children():
 		child.queue_free()
 	
-	_worker_options.clear()
-	
 	var workers = get_tree().get_nodes_in_group("worker_npc")
 	for worker in workers:
 		var ai = worker.get_node_or_null("WorkerAI")
 		if ai == null: continue
+		if not ai.has_method("get_job_role_options"):
+			continue
 		
 		var hbox = HBoxContainer.new()
 		var label = Label.new()
@@ -118,10 +114,10 @@ func _refresh_workers() -> void:
 			stats_label.clip_text = true
 			stats_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 			hbox.add_child(stats_label)
-		
+
 		var ob = OptionButton.new()
 		var selected_index := 0
-		var role_options: Array = ai.call("get_job_role_options") if ai.has_method("get_job_role_options") else _get_fallback_role_options()
+		var role_options: Array = ai.call("get_job_role_options")
 		for index in range(role_options.size()):
 			var role: Dictionary = role_options[index]
 			var role_id := int(role.get("id", index))
@@ -134,19 +130,7 @@ func _refresh_workers() -> void:
 			var role_id := ob.get_item_id(idx)
 			if ai.has_method("set_job_role"):
 				ai.call("set_job_role", role_id)
-			else:
-				ai.job_role = role_id
 		)
 		
 		hbox.add_child(ob)
 		workers_container.add_child(hbox)
-
-func _get_fallback_role_options() -> Array[Dictionary]:
-	return [
-		{"id": 0, "label": "Auto"},
-		{"id": 1, "label": "Cashier"},
-		{"id": 2, "label": "Meat Griller"},
-		{"id": 3, "label": "Burger Prepper"},
-		{"id": 4, "label": "Fries Fryer"},
-		{"id": 5, "label": "Caterer"}
-	]

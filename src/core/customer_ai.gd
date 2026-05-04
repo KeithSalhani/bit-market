@@ -135,7 +135,7 @@ func take_order(worker: Node) -> void:
 	_has_ordered = true
 	_ordered_at_seconds = Time.get_ticks_msec() / 1000.0
 	ordered_food_type = _choose_order_type()
-	_show_order_label()
+	_set_order_label_visible(false)
 	_collect_order_payment()
 	var rm := get_node_or_null("/root/RestaurantManager")
 	if rm != null and rm.has_method("record_order_placed"):
@@ -222,13 +222,6 @@ func clear_delivery_reservation(reservation: Variant = null) -> void:
 func has_received_food() -> bool:
 	return _food_received
 
-func get_delivery_reservation_label() -> String:
-	if _delivery_reservation == null:
-		return "none"
-	if _delivery_reservation is Object and is_instance_valid(_delivery_reservation):
-		return str((_delivery_reservation as Object).get_instance_id())
-	return str(_delivery_reservation)
-
 func receive_food(reservation: Variant = null, food_item: Node3D = null) -> bool:
 	if not can_accept_delivery_task(reservation):
 		return false
@@ -245,9 +238,6 @@ func receive_food(reservation: Variant = null, food_item: Node3D = null) -> bool
 
 func get_ordered_food_type() -> String:
 	return ordered_food_type
-
-func has_paid() -> bool:
-	return _has_paid
 
 func _collect_order_payment() -> void:
 	if _has_paid:
@@ -393,10 +383,8 @@ func _find_seat() -> void:
 	var seats: Array[Node3D] = []
 	_collect_seat_markers(seating_map, seats)
 	
-	for seat in seats:
-		# Simple: just pick random for now, ignore if occupied (would need tracking)
-		my_seat = seat
-		break
+	if not seats.is_empty():
+		my_seat = seats[randi() % seats.size()]
 		
 	if my_seat != null:
 		_send_customer_to_seat(my_seat)
@@ -417,7 +405,6 @@ func _leave() -> void:
 		current_target = leave_point
 		_move_to(leave_point.global_position)
 	else:
-		# Fallback
 		var cm = customer.get_parent()
 		if cm and cm.has_method("customer_left"):
 			cm.customer_left()
@@ -515,10 +502,14 @@ func _collect_register_markers(node: Node, marker_suffix: String, markers: Array
 func _collect_seat_markers(node: Node, markers: Array[Node3D]) -> void:
 	if node is Node3D:
 		var node_name = String(node.name)
-		if node_name.contains("_Seat_") and not bool((node as Node3D).get_meta("occupied", false)):
+		var seat := node as Node3D
+		if node_name.contains("_Seat_") and _seat_is_available(seat):
 			markers.append(node as Node3D)
 	for child in node.get_children():
 		_collect_seat_markers(child, markers)
+
+func _seat_is_available(seat: Node3D) -> bool:
+	return seat != null and is_instance_valid(seat) and not bool(seat.get_meta("occupied", false))
 
 func _get_seat_approach_marker(seat: Node3D) -> Node3D:
 	if seat == null or not seat.has_meta("approach_path"):

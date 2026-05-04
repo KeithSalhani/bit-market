@@ -11,6 +11,8 @@ enum JobRole {
 
 const APPLE_PAY_SOUND := preload("res://assets/audio/applepay.mp3")
 const VFX := preload("res://src/world/restaurant_vfx_factory.gd")
+const CARRIED_FOOD_HAND_OFFSET := Vector3(0.0, 0.08, 0.06)
+const CARRIED_FOOD_WALK_OFFSET := Vector3(0.0, 0.1, 0.1)
 
 class WorkerStats:
 	var movement_speed_pct := 0
@@ -290,8 +292,8 @@ func _execute_fry_fries(task: Object) -> void:
 	var carry_attachments: Array[Node3D] = []
 	var hand_bones = ["RightHand", "LeftHand"]
 	for i in range(mini(2, fried_outputs.size())):
-		carry_attachments.append(_attach_carried_food_to_hand(_worker, fried_outputs[i], hand_bones[i], "CarriedFries", Vector3(0, -0.08, 0.04)))
-	_set_carried_food_offsets(carry_attachments, Vector3(0, -0.18, 0.07))
+		carry_attachments.append(_attach_carried_food_to_hand(_worker, fried_outputs[i], hand_bones[i], "CarriedFries", CARRIED_FOOD_HAND_OFFSET))
+	_set_carried_food_offsets(carry_attachments, CARRIED_FOOD_WALK_OFFSET)
 	
 	_set_task_status(task, "Stocking food", "Moving fries to food table")
 	_move_worker_to(table_stand.global_position, table_storage.global_position)
@@ -378,8 +380,8 @@ func _execute_assemble_burger(task: Object) -> void:
 		_reset_reach_timing_scale(prep_reach)
 		if burger:
 			burger.set_meta("food_type", food_type)
-			var carry = _attach_carried_food_to_hand(_worker, burger, "RightHand", "CarriedBurger", Vector3(0, -0.12, 0.04))
-			_set_carried_food_offsets([carry], Vector3(0, -0.24, 0.08))
+			var carry = _attach_carried_food_to_hand(_worker, burger, "RightHand", "CarriedBurger", CARRIED_FOOD_HAND_OFFSET)
+			_set_carried_food_offsets([carry], CARRIED_FOOD_WALK_OFFSET)
 			
 			_set_task_status(task, "Stocking food", "Moving burger to food table")
 			_move_worker_to(table_stand.global_position, table_storage.global_position)
@@ -397,8 +399,6 @@ func _execute_assemble_burger(task: Object) -> void:
 				
 			if food_table.has_method("store_food_item"):
 				food_table.call("store_food_item", burger, food_type)
-			elif food_table.has_method("store_burger"):
-				food_table.call("store_burger", burger)
 			else:
 				if burger.get_parent() != null:
 					burger.reparent(food_table, true)
@@ -496,7 +496,8 @@ func _execute_deliver_food(task: Object) -> void:
 			"seat": delivery_task.args.get("seat") as Node3D,
 			"food_type": delivery_food_type,
 			"food_item": food_item,
-			"carry": carry
+			"carry": carry,
+			"carry_slot": index
 		})
 	_reset_reach_timing_scale(reach)
 
@@ -504,7 +505,7 @@ func _execute_deliver_food(task: Object) -> void:
 		return
 
 	deliveries.sort_custom(_sort_deliveries_by_nearest_seat)
-	_set_carried_food_offsets(_get_delivery_carry_attachments(deliveries), Vector3(0, -0.24, 0.08))
+	_set_delivery_carry_offsets(deliveries)
 	for delivery in deliveries:
 		await _deliver_single_food_item(delivery, delivery_multiplier)
 
@@ -520,36 +521,29 @@ func _take_food_item_from_table(food_table: Node, food_type: String) -> Node3D:
 func _attach_carried_food_for_delivery(worker: Node3D, food_item: Node3D, slot_index: int) -> Node3D:
 	match slot_index:
 		0:
-			return _attach_carried_food_to_hand(worker, food_item, "RightHand", "CarriedFood", Vector3(0, -0.12, 0.04))
+			return _attach_carried_food_to_hand(worker, food_item, "RightHand", "CarriedFood", _get_delivery_hand_offset(slot_index))
 		1:
-			return _attach_carried_food_to_hand(worker, food_item, "LeftHand", "CarriedFood", Vector3(0, -0.12, 0.04))
-	return _attach_carried_food_to_front(worker, food_item, "CarriedFoodFront", Vector3(0.0, 1.0, 0.32))
+			return _attach_carried_food_to_hand(worker, food_item, "LeftHand", "CarriedFood", _get_delivery_hand_offset(slot_index))
+	return _attach_carried_food_to_hand(worker, food_item, "RightHand", "CarriedFood", _get_delivery_hand_offset(slot_index))
 
-func _attach_carried_food_to_front(worker: Node3D, food_item: Node3D, attachment_name: String, local_position: Vector3) -> Node3D:
-	if worker == null or food_item == null or not is_instance_valid(food_item):
-		return null
-	var carried_global_scale = food_item.global_transform.basis.get_scale()
-	var attachment := Node3D.new()
-	attachment.name = attachment_name
-	worker.add_child(attachment)
-	attachment.position = local_position
-	if food_item.get_parent() != null:
-		food_item.reparent(attachment, false)
-	else:
-		attachment.add_child(food_item)
-	food_item.visible = true
-	food_item.position = Vector3.ZERO
-	food_item.rotation_degrees = Vector3.ZERO
-	_apply_global_scale(food_item, carried_global_scale)
-	return attachment
-
-func _get_delivery_carry_attachments(deliveries: Array[Dictionary]) -> Array[Node3D]:
-	var attachments: Array[Node3D] = []
+func _set_delivery_carry_offsets(deliveries: Array[Dictionary]) -> void:
 	for delivery in deliveries:
 		var carry := delivery.get("carry") as Node3D
-		if carry != null:
-			attachments.append(carry)
-	return attachments
+		var slot_index := int(delivery.get("carry_slot", 0))
+		if carry == null or not is_instance_valid(carry):
+			continue
+		for child in carry.get_children():
+			if child is Node3D:
+				(child as Node3D).position = _get_delivery_hand_offset(slot_index)
+
+func _get_delivery_hand_offset(slot_index: int) -> Vector3:
+	match slot_index:
+		0:
+			return Vector3(-0.04, 0.1, 0.1)
+		1:
+			return CARRIED_FOOD_WALK_OFFSET
+		_:
+			return Vector3(0.08, 0.16, 0.14)
 
 func _sort_deliveries_by_nearest_seat(a: Dictionary, b: Dictionary) -> bool:
 	var a_seat := a.get("seat") as Node3D
@@ -847,9 +841,6 @@ func request_job_role(role: int, reason: String = "") -> bool:
 	_pending_job_role = role
 	_pending_job_role_reason = reason
 	return false
-
-func get_pending_job_role_label() -> String:
-	return _get_job_role_label(_pending_job_role) if _pending_job_role >= 0 else ""
 
 func _apply_pending_job_role_if_any() -> void:
 	if _pending_job_role < 0:

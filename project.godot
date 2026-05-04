@@ -17,10 +17,13 @@ config/icon="res://assets/characters/icon.svg"
 
 [autoload]
 
-
 TaskManager="*res://src/core/task_manager.gd"
 HUD="*res://scenes/ui/hud.tscn"
 RestaurantManager="*res://src/core/restaurant_manager.gd"
+
+[filesystem]
+
+import/blender/enabled=false
 
 [input]
 

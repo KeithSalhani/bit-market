@@ -8,7 +8,6 @@ signal arrived_at_target(target_position: Vector3)
 @export var turn_speed := 10.0
 @export var stopping_distance := 0.35
 @export var waypoint_distance := 0.65
-@export var print_debug_messages := true
 @export var sit_position_height_offset := -0.9
 @export var visual_node_path: NodePath = ^"Rogue"
 @export var animation_player_path: NodePath = ^"Rogue/AnimationPlayer"
@@ -97,15 +96,6 @@ func sit_at_seat(seat: Node3D) -> void:
 	var navigation_map := get_world_3d().navigation_map
 	var approach_position := NavigationServer3D.map_get_closest_point(navigation_map, _target_approach_transform.origin)
 	_set_navigation_target(approach_position)
-	if print_debug_messages:
-		print("NPC sitting target: ", seat.get_path(), " approach: ", approach_position)
-
-func sit_at_seat_path(seat_path: NodePath) -> void:
-	var seat := get_node_or_null(seat_path) as Node3D
-	if seat == null:
-		push_warning("Cannot sit: seat path not found: %s" % String(seat_path))
-		return
-	sit_at_seat(seat)
 
 func stand_up() -> void:
 	if _state != NpcState.SEATED:
@@ -125,20 +115,15 @@ func stand_up() -> void:
 func _set_navigation_target(target_position: Vector3) -> void:
 	navigation_agent.target_position = target_position
 	_has_target = true
-	if print_debug_messages:
-		print("NPC target received: ", target_position, " from ", global_position)
 	
 	if _is_navigation_target_reached():
 		_on_target_reached_immediate()
 
 func _on_target_reached_immediate() -> void:
-	# Use call_deferred to ensure signals are consistent
 	call_deferred("_handle_arrival")
 
 func _handle_arrival() -> void:
 	if not _has_target: return
-	if print_debug_messages:
-		print("NPC navigation finished at: ", global_position)
 	var target_pos = navigation_agent.target_position
 	if _state == NpcState.MOVING_TO_SEAT:
 		_finish_sitting()
@@ -237,41 +222,11 @@ func _finish_sitting() -> void:
 		_play_animation(idle_animation)
 	else:
 		_active_seated_animation = resolved_seated_animation
-	if print_debug_messages and _target_seat != null:
-		var character_label := ""
-		if _has_property("character_id"):
-			character_label = " character: %s" % String(get("character_id"))
-		var seat_height_offset := 0.0
-		if _target_seat.has_meta("height_offset"):
-			seat_height_offset = float(_target_seat.get_meta("height_offset"))
-		print(
-			"NPC seated at: ",
-			_target_seat.get_path(),
-			" seat_origin: ",
-			_target_seat_transform.origin,
-			" actor_origin: ",
-			global_position,
-			" seat_height_offset: ",
-			seat_height_offset,
-			" sit_position_height_offset: ",
-			resolved_sit_position_height_offset,
-			" seated_visual_height_offset: ",
-			resolved_seated_visual_height_offset,
-			character_label,
-			" animation: ",
-			resolved_seated_animation
-		)
 
 func _get_seat_float_meta(meta_name: StringName, fallback: float) -> float:
 	if _target_seat == null or not _target_seat.has_meta(meta_name):
 		return fallback
 	return float(_target_seat.get_meta(meta_name))
-
-func _has_property(property_name: String) -> bool:
-	for property in get_property_list():
-		if String(property.get("name", "")) == property_name:
-			return true
-	return false
 
 func _release_target_seat() -> void:
 	if _target_seat == null:

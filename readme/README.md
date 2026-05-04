@@ -16,46 +16,66 @@ The simulation also includes a physical boss manager NPC. The boss walks around 
 
 The simulation includes burger assembly, meat grilling, fries frying, register queues, seat assignment, food storage, delivery, eating animations, menu pricing, worker performance stats, money tracking, slower day/time progression, and HUD/debug interfaces for observing the running system.
 
+The current restaurant scene is also staged as a rainy night environment. It uses fog, runtime fixture lighting, lamppost lighting, roof-aware rain particles, muffled indoor rain audio, kitchen/register VFX, and simple road traffic with lit vehicles to make the restaurant feel active outside the core management loop.
+
 ## Video
 
 [![YouTube video placeholder](docs/screenshots/video-placeholder.png)](https://www.youtube.com/watch?v=TODO)
 
-TODO: Replace this placeholder with the final demo video link.
+TODO: Replace this placeholder with the final public YouTube demo link.
 
 ## Screenshots
 
 TODO: Add final screenshots to `readme/docs/screenshots/`.
 
-![Main restaurant overview](docs/screenshots/main-restaurant-overview.png)
+![Main restaurant overview](docs/screenshots/resteraunt.png)
 
-![Kitchen stations](docs/screenshots/kitchen-stations.png)
+![Kitchen stations](docs/screenshots/kitchen.png)
 
-![Register queue and customers](docs/screenshots/register-queue.png)
+![Register queue and customers](docs/screenshots/queue.png)
 
-![Worker activity HUD](docs/screenshots/worker-activity-hud.png)
-
-![Customer eating flow](docs/screenshots/customer-eating-flow.png)
+![Customer eating flow](docs/screenshots/sitting.png)
 
 ## Animations
 
 TODO: Add final GIFs or short captured clips to `readme/docs/animations/`.
 
-![Worker kitchen loop placeholder](docs/animations/worker-kitchen-loop.gif)
+![Worker kitchen loop placeholder](docs/animations/kitchen-flow.gif)
 
-![Burger assembly placeholder](docs/animations/burger-assembly.gif)
+![Burger assembly placeholder](docs/animations/burger-prep.gif)
 
-![Fries frying placeholder](docs/animations/fries-frying.gif)
+![Fries frying placeholder](docs/animations/fryer.gif)
 
 ![Customer seating and eating placeholder](docs/animations/customer-seating-eating.gif)
 
 ## Audio
 
-TODO: Add final audio demonstration clips to `readme/docs/audio/`.
+The game uses imported audio assets for payment, kitchen/station feedback, eating, rain ambience, and traffic ambience.
 
-- [Register payment sound placeholder](docs/audio/apple-pay-register.mp3)
-- [Grill sound placeholder](docs/audio/grill-sizzle.mp3)
-- [Fryer sound placeholder](docs/audio/fryer-oil.mp3)
-- [Restaurant ambience placeholder](docs/audio/restaurant-ambience.mp3)
+Implemented audio assets include:
+
+- [Register payment sound](../assets/audio/applepay.mp3)
+- [Register/kitchen beeping sound](../assets/audio/mcdonalds-beeping-sound.mp3)
+- [Customer eating chips sound](../assets/audio/freesound_community-eating-chips-81092.mp3)
+- [Cooking/fire swoosh sound](../assets/audio/gregorquendel-designed-fire-winds-swoosh-04-116788.mp3)
+- [Restaurant music loop](../assets/audio/sergequadrado-fun-hop-loop-394917.mp3)
+- [Rain ambience](../assets/audio/dragon-studio-gentle-rain-07-437321.mp3)
+- [Vehicle engine loop](../assets/vehicles/Sound%20effects/Car_Engine_Loop.ogg)
+- [Vehicle engine loop 2](../assets/vehicles/Sound%20effects/Car_Engine_Loop_2.ogg)
+- [Vehicle 2 engine loop](../assets/vehicles/Sound%20effects/Car2_Engine_Loop.ogg)
+- [Vehicle 2 engine startup](../assets/vehicles/Sound%20effects/Car2_Engine_Start_Up.ogg)
+- [Vehicle 2 engine turning off](../assets/vehicles/Sound%20effects/Car2_Engine_Turning_Off.ogg)
+- [Vehicle drive/acceleration sound](../assets/vehicles/Sound%20effects/Car_Acceleration.ogg)
+- [Vehicle drive/acceleration sound 2](../assets/vehicles/Sound%20effects/Car_Acceleration_2.ogg)
+- [Vehicle engine startup](../assets/vehicles/Sound%20effects/Car_Engine_Start_Up.ogg)
+- [Vehicle engine turning off](../assets/vehicles/Sound%20effects/Car_Engine_Turning_Off.ogg)
+- [Vehicle door close](../assets/vehicles/Sound%20effects/Car_Door_Close.ogg)
+- [Vehicle door open](../assets/vehicles/Sound%20effects/Car_Door_Open.ogg)
+- [Vehicle hood close](../assets/vehicles/Sound%20effects/Car_Hood_Close.ogg)
+- [Vehicle hood open](../assets/vehicles/Sound%20effects/Car_Hood_Open.ogg)
+- [Vehicle horn](../assets/vehicles/Sound%20effects/Car_Horn.ogg)
+- [Vehicle parking brake](../assets/vehicles/Sound%20effects/Car_Parking_Brake.ogg)
+- [Vehicle trunk open](../assets/vehicles/Sound%20effects/Car_Trunk_Open.ogg)
 
 # Instructions
 
@@ -136,10 +156,16 @@ The restaurant simulation is built around a set of managers and station scripts.
 
 Kitchen stations provide the physical food production logic:
 
-- `GrillStation`: cooks batches of meat, shows meat props, and emits smoke particles while cooking.
-- `BurgerAssemblyStation`: builds burgers from individual ingredient props, requires cooked meat stock, stores finished burgers, and exposes finished food for transport.
-- `FryerStation`: lowers baskets, shows oil, spawns raw fries, emits oil bubble particles, and creates bagged fries.
-- `FoodTableStation`: stores prepared food by type and exposes food lookup for delivery tasks.
+- `GrillStation`: cooks batches of meat, shows meat props, emits smoke/ember/heat VFX while cooking, and adds a small fill light so meat stays readable in the night scene.
+- `BurgerAssemblyStation`: builds burgers from individual ingredient props, requires cooked meat stock, stores finished burgers, and emits small ingredient/finished-food bursts.
+- `FryerStation`: lowers baskets, shows oil, spawns raw fries, emits steam/oil/heat VFX, and creates bagged fries.
+- `FoodTableStation`: stores prepared food by type, exposes food lookup for delivery tasks, and emits placement/removal bursts.
+
+`RestaurantAtmosphere` controls the visual and audio mood of the burger level. It sets the rainy night environment, keeps the foggy look, creates runtime lights from imported restaurant fixtures and lamppost markers, spawns rain outside and above the roof, and muffles the rain sound when the camera is inside the restaurant boundary. The boundary is derived from the front door, back windows, left windows, and right-side door nodes in the BurgerPiz map.
+
+`RestaurantVFXFactory` provides reusable VFX helpers for short bursts, steam, embers, heat shimmer, and small temporary lights. The station scripts call into it instead of each station building its own particle setup from scratch.
+
+The road traffic system is made from `TrafficManager` and `TrafficVehicle`. The manager reads lane markers from the `Road` node in the burger level, spawns low-poly vehicles into four lanes, and moves them between lane endpoints. Each vehicle has separated wheel meshes so the wheels can spin while driving, plus 3D engine/drive loops, headlight beams, front lens glow, and red rear lights for the night environment.
 
 Movement and interaction use Godot navigation, station markers, seat/register markers, and `SkeletonIK3D`-based reaching. Workers, customers, and the boss use separate movement scripts so the simulation can run autonomously once the restaurant is open.
 
@@ -479,20 +505,29 @@ This keeps the LLM as the high-level manager while the game code remains respons
 | `src/world/fryer_station.gd` | Self written |
 | `src/world/burger_assembly_station.gd` | Self written |
 | `src/world/food_table_station.gd` | Self written |
+| `src/world/restaurant_atmosphere.gd` | Self written |
+| `src/world/restaurant_vfx_factory.gd` | Self written |
 | `src/world/worker_menu.gd` | Self written |
 | `src/world/crt_tv_display.gd` | Self written |
+| `src/world/demo_free_camera.gd` | Self written demo camera control |
+| `src/world/npc_seating_demo.gd` | Self written early seating test/demo helper |
 | `src/world/seating_map_debugger.gd` | Modified project tool for seat/register/workstation marker generation |
 | `src/movement/worker_npc_movement.gd` | Self written |
 | `src/movement/worker_reach_controller.gd` | Self written |
 | `src/movement/customer_eating_controller.gd` | Self written |
+| `src/movement/player_movement.gd` | Self written prototype third-person player controller |
 | `src/movement/npc_movement.gd` | Modified existing NPC movement script |
 | `src/movement/character_npc_movement.gd` | Modified existing NPC movement script |
+| `src/navigation/burger_level_click_navigation_demo.gd` | Self written navigation/debug demo helper |
+| `src/vehicles/traffic_manager.gd` | Self written |
+| `src/vehicles/traffic_vehicle.gd` | Self written |
 | `scenes/world/burger_level.tscn` | Self assembled Godot scene using imported assets |
 | `scenes/characters/worker.tscn` | Self assembled Godot scene using imported character asset |
 | `scenes/characters/worker_npc.tscn` | Self assembled Godot scene using imported character asset |
 | `scenes/characters/boss.tscn` | Self assembled Godot scene using imported character asset |
 | `scenes/characters/boss_npc.tscn` | Self assembled Godot scene using imported character asset and boss AI |
 | `scenes/characters/character_npc.tscn` | Modified existing NPC scene |
+| `scenes/vehicles/*.tscn` | Self assembled vehicle scenes using imported vehicle assets |
 | `scenes/ui/hud.tscn` | Self written/assembled |
 | `config/llm.example.json` | Self written example config with no secrets |
 | `scenes/props/food/*.tscn` | Self assembled Godot scenes using imported food assets |
@@ -505,6 +540,9 @@ This keeps the LLM as the high-level manager while the game code remains respons
 | `assets/characters/psx/*` | Characters PSX pack by Elbolilloduro |
 | `assets/characters/Rogue*` | Third-party character asset imported into Godot |
 | `assets/characters/psx/psx_prop_-_restaurant_cook*` | PSX restaurant cook model from Sketchfab |
+| `assets/vehicles/*` | Third-party low-poly/PSX vehicle assets imported into Godot |
+| `assets/audio/dragon-studio-gentle-rain-07-437321.mp3` | Third-party rain ambience sound imported into Godot |
+| `assets/vehicles/Sound effects/*` | Third-party vehicle sound effects imported into Godot |
 | `assets/animations/Rig_Medium/animations/*` | Universal Animation Library by Quaternius |
 | `assets/animations/Base/carla*` | Carla Sitting Idle model/animation from Sketchfab |
 | `assets/animations/Base/man_sitting*` | Man Sitting model/animation from Sketchfab |
@@ -519,6 +557,8 @@ The part I am most proud of is the worker task pipeline. A customer order can tr
 The boss manager was the largest AI systems addition. I built it so the boss is a physical character with limited observations instead of an all-knowing script. The boss walks between inspection zones, records stale and known facts, tracks worker performance, questions workers about carry capacity, sends a structured prompt to Gemini, and then validates the returned plan before applying role changes, stock targets, hiring, firing, pricing, or speech.
 
 I also learned a lot about building larger Godot systems from smaller reusable nodes. The project uses Godot scenes for physical objects and station markers, while scripts expose simple methods such as `fry_fries`, `cook_meat`, `store_food_item`, and `receive_food`. This made it easier to connect AI behavior to the world without hardcoding every interaction.
+
+The later visual polish pass added the rainy night atmosphere, station VFX, register payment burst, lamppost/fixture lighting, muffled rain audio, and basic traffic outside the restaurant. I also split imported vehicle models into body and wheel parts so the cars could drive with spinning wheels, lights, and looping 3D audio instead of remaining static background props.
 
 # References
 
@@ -536,3 +576,10 @@ I also learned a lot about building larger Godot systems from smaller reusable n
 - CRT TV: https://sketchfab.com/3d-models/crt-tv-7e19d474af4449e69c03dc661e7967dc
 - Characters PSX pack by Elbolilloduro: https://elbolilloduro.itch.io/characters-psx
 - PSX Prop Restaurant Cook: https://sketchfab.com/3d-models/psx-prop-restaurant-cook-6cb111c432854de08c8aca9ee09d806c
+- Low-poly/PSX vehicle pack: https://ggbot.itch.io/psx-style-cars
+- Rain ambience: https://pixabay.com/sound-effects/nature-gentle-rain-07-437321/
+- Eating sound: https://pixabay.com/sound-effects/people-eating-chips-81092/
+- Grilling sound: https://pixabay.com/sound-effects/nature-designed-fire-winds-swoosh-04-116788/
+- McDonalds beeping sound: https://www.myinstants.com/en/instant/mcdonalds-beeping-sound-69919/
+- Lobby sound: https://pixabay.com/id/music/ketukan-fun-hop-loop-394917/
+

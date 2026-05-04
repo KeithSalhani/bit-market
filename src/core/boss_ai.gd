@@ -42,9 +42,7 @@ const MAX_PRICES := {"burger": 8.0, "fries": 4.0, "soda": 3.0}
 @export var director_interval_seconds := 5.0
 @export var price_cooldown_seconds := 45.0
 @export var route_completion_decisions := false
-@export var service_director_enabled := false
-@export var max_auto_workers := 5
-@export var debug_log_enabled := true
+@export var debug_log_enabled := false
 @export var debug_log_reset_on_start := true
 
 var knowledge: RefCounted = BossKnowledgeScript.new()
@@ -104,7 +102,7 @@ func get_status() -> Dictionary:
 		"next_director_seconds": maxf(0.0, director_interval_seconds - (_now() - _last_director_time)),
 		"next_llm_seconds": maxf(0.0, decision_cooldown_seconds - (_now() - _last_decision_time)),
 		"event_log": _event_log.duplicate(),
-		"debug_log_path": ProjectSettings.globalize_path(DEBUG_LOG_PATH),
+		"debug_log_path": ProjectSettings.globalize_path(DEBUG_LOG_PATH) if debug_log_enabled else "",
 		"pending_role_changes": _pending_role_changes.duplicate(true),
 		"worker_metrics": _last_metrics_snapshot.get("workers", []),
 		"restaurant_metrics": _last_metrics_snapshot.get("restaurant", {}),
@@ -1254,30 +1252,11 @@ func _count_open_orders(food_type: String) -> int:
 func _count_ready_food(food_table: Node, food_type: String) -> int:
 	if food_table == null:
 		return 0
-	var stored: Variant = food_table.get("_stored_food_items")
-	if not (stored is Array):
-		if food_table.has_method("has_food_item"):
-			return 1 if bool(food_table.call("has_food_item", food_type)) else 0
-		return 0
-	var count := 0
-	for item in stored as Array:
-		if item == null or not is_instance_valid(item):
-			continue
-		if _food_item_matches_type(item as Node, food_type):
-			count += 1
-	return count
-
-func _food_item_matches_type(food_item: Node, food_type: String) -> bool:
-	if food_item == null:
-		return false
-	if food_item.has_meta("food_type"):
-		return String(food_item.get_meta("food_type")) == food_type
-	var normalized := String(food_item.name).to_lower()
-	if food_type == "burger":
-		return normalized.contains("burger")
-	if food_type == "fries":
-		return normalized.contains("fries")
-	return false
+	if food_table.has_method("get_food_item_count"):
+		return int(food_table.call("get_food_item_count", food_type))
+	if food_table.has_method("has_food_item"):
+		return 1 if bool(food_table.call("has_food_item", food_type)) else 0
+	return 0
 
 func _count_tasks_for_food(tm: Node, food_type: String) -> int:
 	var count := 0

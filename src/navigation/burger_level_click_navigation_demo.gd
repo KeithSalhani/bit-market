@@ -5,7 +5,6 @@ extends NavigationRegion3D
 @export var demo_camera_path: NodePath = ^"DemoCamera3D"
 @export var ray_length := 1000.0
 @export var navigation_plane_y := 0.4
-@export var print_debug_messages := true
 
 @onready var npc: Node = get_node_or_null(npc_path)
 @onready var demo_camera: Camera3D = get_node_or_null(demo_camera_path) as Camera3D
@@ -39,10 +38,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		var closest_point := NavigationServer3D.map_get_closest_point(navigation_map, target_position)
 		if npc != null and npc.has_method("set_navigation_target"):
 			npc.set_navigation_target(closest_point)
-			if print_debug_messages:
-				print("Click navigation target: ", closest_point)
-		elif print_debug_messages:
-			print("Click navigation ignored: NPC target method not available")
 
 func _get_click_world_position(screen_position: Vector2) -> Variant:
 	var camera := get_viewport().get_camera_3d()

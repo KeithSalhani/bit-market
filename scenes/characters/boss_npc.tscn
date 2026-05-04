@@ -8,7 +8,6 @@
 
 [node name="BossNpc" type="CharacterBody3D" unique_id=3959846]
 script = ExtResource("1_68mf8")
-print_debug_messages = false
 visual_node_path = NodePath("Sketchfab_Scene")
 animation_player_path = NodePath("Sketchfab_Scene/AnimationPlayer")
 idle_animation = &"HumanM@Idle01"

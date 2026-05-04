@@ -46,9 +46,6 @@ func set_selected(value: bool) -> void:
 	if selection_ring != null:
 		selection_ring.visible = _selected
 
-func is_selected() -> bool:
-	return _selected
-
 func set_navigation_target(target_position: Vector3) -> void:
 	_leave_station_snap()
 	navigation_agent.target_position = target_position

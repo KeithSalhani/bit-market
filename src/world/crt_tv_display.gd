@@ -410,18 +410,6 @@ func _apply_text_style() -> void:
 	_update_viewport_content()
 
 
-func _usable_screen_width() -> float:
-	var left := _bottom_left.position.lerp(_top_left.position, 0.5)
-	var right := _bottom_right.position.lerp(_top_right.position, 0.5)
-	return max(left.distance_to(right) * (1.0 - horizontal_padding * 2.0), 0.001)
-
-
-func _usable_screen_height() -> float:
-	var bottom := _bottom_left.position.lerp(_bottom_right.position, 0.5)
-	var top := _top_left.position.lerp(_top_right.position, 0.5)
-	return max(bottom.distance_to(top) * (1.0 - vertical_padding * 2.0), 0.001)
-
-
 func _screen_point(u: float, v: float) -> Vector3:
 	var padded_u := lerpf(horizontal_padding, 1.0 - horizontal_padding, clampf(u, 0.0, 1.0))
 	var padded_v := lerpf(vertical_padding, 1.0 - vertical_padding, clampf(v, 0.0, 1.0))
@@ -451,10 +439,6 @@ func _vertical_curve_midpoint(v: float) -> Vector3:
 	var center_weight := (-4.0 * v * v) + (4.0 * v)
 	var top_weight := (2.0 * v * v) - v
 	return (bottom_mid * bottom_weight) + (_center.position * center_weight) + (top_mid * top_weight)
-
-
-func _screen_basis() -> Basis:
-	return Basis(_right_axis, _up_axis, -_face_axis).orthonormalized()
 
 
 func _screen_material() -> StandardMaterial3D:

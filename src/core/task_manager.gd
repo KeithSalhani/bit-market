@@ -36,7 +36,6 @@ func add_task(type: int, args: Dictionary = {}) -> Task:
 		return null
 	pending_tasks.append(task)
 	tasks_changed.emit()
-	# print("TaskManager: Added task type ", type)
 	return task
 
 func get_next_task(worker: Node) -> Task:
@@ -83,7 +82,6 @@ func get_next_task(worker: Node) -> Task:
 			task.status = "in_progress"
 			active_tasks.append(task)
 			tasks_changed.emit()
-			# print("TaskManager: Assigned task type ", task.type, " to ", worker.name)
 			return task
 		i += 1
 	return null
@@ -339,35 +337,11 @@ func _delivery_ready_food_count(task: Task) -> int:
 	if food_table == null or not is_instance_valid(food_table):
 		return 0
 	var food_type := String(task.args.get("food_type", ""))
+	if food_table.has_method("get_food_item_count"):
+		return int(food_table.call("get_food_item_count", food_type))
 	if food_table.has_method("has_food_item"):
-		var stored_items = food_table.get("_stored_food_items")
-		if stored_items is Array:
-			var count := 0
-			for item in stored_items:
-				if item != null and is_instance_valid(item) and _food_item_matches_delivery_type(item, food_type):
-					count += 1
-			return count
 		return 1 if bool(food_table.call("has_food_item", food_type)) else 0
-	var fallback_stored_items = food_table.get("_stored_food_items")
-	if fallback_stored_items is Array:
-		var fallback_count := 0
-		for item in fallback_stored_items:
-			if item != null and is_instance_valid(item) and _food_item_matches_delivery_type(item, food_type):
-				fallback_count += 1
-		return fallback_count
 	return 0
-
-func _food_item_matches_delivery_type(food_item: Node, food_type: String) -> bool:
-	if food_type.is_empty():
-		return true
-	if food_item.has_meta("food_type"):
-		return String(food_item.get_meta("food_type")) == food_type
-	var normalized_name := String(food_item.name).to_lower()
-	if normalized_name.contains("fries"):
-		return food_type == "fries"
-	if normalized_name.contains("burger"):
-		return food_type == "burger"
-	return false
 
 func _station_has_active_task(task: Task) -> bool:
 	var station = task.args.get("station")
@@ -466,21 +440,6 @@ func get_task_type_label(type: int) -> String:
 			return "Deliver Food"
 	return "Unknown"
 
-func get_task_summary(task: Task) -> Dictionary:
-	if task == null:
-		return {}
-	var customer = task.args.get("customer")
-	return {
-		"type": get_task_type_label(task.type),
-		"status": task.status,
-		"worker": task.assigned_worker.name if is_instance_valid(task.assigned_worker) else "unassigned",
-		"customer": _node_label(customer),
-		"customer_path": _node_path_label(customer),
-		"station": _node_label(task.args.get("station")),
-		"food_table": _node_label(task.args.get("food_table")),
-		"food_type": String(task.args.get("food_type", "-"))
-	}
-
 func _prepare_task_for_queue(task: Task) -> bool:
 	if task.type != TaskType.DELIVER_FOOD:
 		return true
@@ -503,13 +462,3 @@ func _customer_can_accept_delivery(customer: Variant, reservation: Variant) -> b
 func _clear_delivery_reservation(customer: Variant, reservation: Variant) -> void:
 	if customer != null and is_instance_valid(customer) and customer.has_method("clear_delivery_reservation"):
 		customer.call("clear_delivery_reservation", reservation)
-
-func _node_label(value: Variant) -> String:
-	if value is Node and is_instance_valid(value):
-		return String((value as Node).name)
-	return "-"
-
-func _node_path_label(value: Variant) -> String:
-	if value is Node and is_instance_valid(value):
-		return String((value as Node).get_path())
-	return "-"
