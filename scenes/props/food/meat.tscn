@@ -9,6 +9,10 @@ alpha_scissor_threshold = 0.46124506
 alpha_antialiasing_mode = 0
 cull_mode = 2
 albedo_texture = ExtResource("1_bvea4")
+emission_enabled = true
+emission = Color(0.28, 0.13, 0.08, 1)
+emission_energy_multiplier = 0.22
+emission_texture = ExtResource("1_bvea4")
 texture_filter = 0
 
 [sub_resource type="ArrayMesh" id="ArrayMesh_aa2ne"]

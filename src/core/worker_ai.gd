@@ -10,6 +10,7 @@ enum JobRole {
 }
 
 const APPLE_PAY_SOUND := preload("res://assets/audio/applepay.mp3")
+const VFX := preload("res://src/world/restaurant_vfx_factory.gd")
 
 class WorkerStats:
 	var movement_speed_pct := 0
@@ -221,7 +222,8 @@ func _play_register_order_sound(register_marker: Node3D) -> void:
 	if register_marker == null or not is_instance_valid(register_marker):
 		return
 
-	var audio_parent := register_marker.get_parent() as Node3D
+	var register_body := _resolve_cash_register_body(register_marker)
+	var audio_parent := register_body
 	if audio_parent == null:
 		audio_parent = register_marker
 
@@ -229,10 +231,24 @@ func _play_register_order_sound(register_marker: Node3D) -> void:
 	player.name = "ApplePaySound"
 	player.stream = APPLE_PAY_SOUND
 	player.max_distance = 8.0
-	player.finished.connect(player.queue_free)
+	player.finished.connect(Callable(player, "queue_free"))
 	audio_parent.add_child(player)
-	player.global_position = audio_parent.global_position
+	player.global_position = register_body.global_position if register_body != null else audio_parent.global_position
 	player.play()
+	VFX.spawn_burst(audio_parent, player.global_position + Vector3.UP * 0.48, Color(0.42, 1.0, 0.58, 0.82), 46, 0.62, 0.16, 0.45, 1.45, 0.28, 0.95, true, 0.022)
+
+func _resolve_cash_register_body(register_marker: Node3D) -> Node3D:
+	var register_root := register_marker.get_parent() as Node3D
+	if register_root == null:
+		return register_marker
+
+	if register_root.has_meta("source_register"):
+		var source_path := NodePath(String(register_root.get_meta("source_register")))
+		var source_register := get_node_or_null(source_path) as Node3D
+		if source_register != null:
+			return source_register
+
+	return register_root
 
 func _execute_fry_fries(task: Object) -> void:
 	_set_task_status(task, "Frying", "Claiming fryer")

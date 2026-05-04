@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://je2cgfhvt84c"
+path="res://.godot/imported/wheel_rear_right.obj-0485cf21d884d2f2048f695c392b7dda.mesh"
+
+[deps]
+
+files=["res://.godot/imported/wheel_rear_right.obj-0485cf21d884d2f2048f695c392b7dda.mesh"]
+
+source_file="res://assets/vehicles/police_car/wheel_rear_right.obj"
+dest_files=["res://.godot/imported/wheel_rear_right.obj-0485cf21d884d2f2048f695c392b7dda.mesh", "res://.godot/imported/wheel_rear_right.obj-0485cf21d884d2f2048f695c392b7dda.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false
