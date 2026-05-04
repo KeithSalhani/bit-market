@@ -2,3 +2,7 @@
 .godot/
 /android/
 config/llm.local.json
+
+# Local export artifacts
+/*.exe
+/*.pck
