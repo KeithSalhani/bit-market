@@ -20,13 +20,9 @@ The current restaurant scene is also staged as a rainy night environment. It use
 
 ## Video
 
-[![YouTube video placeholder](docs/screenshots/video-placeholder.png)](https://www.youtube.com/watch?v=TODO)
-
-TODO: Replace this placeholder with the final public YouTube demo link.
+[Youtube Video](https://youtu.be/0DrXUjW8uA4)
 
 ## Screenshots
-
-TODO: Add final screenshots to `readme/docs/screenshots/`.
 
 ![Main restaurant overview](docs/screenshots/resteraunt.png)
 Resteraunt overview
@@ -41,8 +37,6 @@ Queue
 Customers eating
 
 ## Animations
-
-TODO: Add final GIFs or short captured clips to `readme/docs/animations/`.
 
 ![Worker kitchen loop](docs/animations/kitchen-flow.gif)
 Kitchen

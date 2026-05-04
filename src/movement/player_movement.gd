@@ -11,22 +11,33 @@ extends CharacterBody3D
 @export var mouse_sensitivity := 0.0035
 @export_range(-80.0, 80.0, 0.1) var min_pitch_degrees := -35.0
 @export_range(-80.0, 80.0, 0.1) var max_pitch_degrees := 55.0
-@export var camera_position_smoothing := 8.0
-@export var camera_look_smoothing := 10.0
+@export var camera_position_smoothing := 6.5
+@export var camera_look_smoothing := 8.0
+@export var camera_velocity_lead := 0.32
+@export var camera_speed_pullback := 0.55
+@export var camera_speed_height := 0.18
+@export var camera_fov_smoothing := 4.0
+@export var camera_idle_fov := 62.0
+@export var camera_run_fov := 68.0
+@export var camera_roll_degrees := 2.5
+@export var camera_roll_smoothing := 6.0
 
 @onready var rogue_visual: Node3D = $Rogue
 @onready var animation_player: AnimationPlayer = $Rogue/AnimationPlayer
 @onready var camera: Camera3D = $Camera3D
 
 const ANIMATION_LIBRARY := &"Player"
+const MIN_CAMERA_DISTANCE := 0.5
 
 var gravity: float = float(ProjectSettings.get_setting("physics/3d/default_gravity"))
 var camera_look_target: Vector3 = Vector3.ZERO
 var camera_yaw := 0.0
 var camera_pitch := deg_to_rad(12.0)
+var camera_roll := 0.0
 
 func _ready() -> void:
 	camera.top_level = true
+	camera.fov = camera_idle_fov
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	camera_look_target = global_position + camera_pivot_offset
 	_snap_camera_to_target()
@@ -85,11 +96,24 @@ func _update_camera(delta: float) -> void:
 	var pitch_basis := Basis(Vector3.RIGHT, camera_pitch)
 	var camera_rotation := yaw_basis * pitch_basis
 	var shoulder_offset: Vector3 = yaw_basis * Vector3.RIGHT * camera_shoulder_offset
-	var desired_offset: Vector3 = camera_rotation * Vector3(0.0, 0.0, camera_distance)
-	var desired_position: Vector3 = pivot_position + shoulder_offset + desired_offset
-	camera.global_position = camera.global_position.lerp(desired_position, camera_position_smoothing * delta)
-	camera_look_target = camera_look_target.lerp(pivot_position + shoulder_offset * 0.35, camera_look_smoothing * delta)
+	var horizontal_velocity := Vector3(velocity.x, 0.0, velocity.z)
+	var speed_factor := clampf(horizontal_velocity.length() / move_speed, 0.0, 1.0)
+	var lead_offset := horizontal_velocity * camera_velocity_lead
+	var dynamic_distance := maxf(camera_distance + speed_factor * camera_speed_pullback, MIN_CAMERA_DISTANCE)
+	var dynamic_height := Vector3.UP * speed_factor * camera_speed_height
+	var desired_offset: Vector3 = camera_rotation * Vector3(0.0, 0.0, dynamic_distance)
+	var desired_position: Vector3 = pivot_position + shoulder_offset + desired_offset + dynamic_height
+	var position_weight := _smoothing_weight(camera_position_smoothing, delta)
+	var look_weight := _smoothing_weight(camera_look_smoothing, delta)
+	camera.global_position = camera.global_position.lerp(desired_position, position_weight)
+	camera_look_target = camera_look_target.lerp(pivot_position + shoulder_offset * 0.35 + lead_offset, look_weight)
 	camera.look_at(camera_look_target, Vector3.UP)
+	var target_fov := lerpf(camera_idle_fov, camera_run_fov, speed_factor)
+	camera.fov = lerpf(camera.fov, target_fov, _smoothing_weight(camera_fov_smoothing, delta))
+	var strafe_amount := Input.get_action_strength("move_right") - Input.get_action_strength("move_left")
+	var target_roll := deg_to_rad(-camera_roll_degrees * strafe_amount * speed_factor)
+	camera_roll = lerp_angle(camera_roll, target_roll, _smoothing_weight(camera_roll_smoothing, delta))
+	camera.rotation.z = camera_roll
 
 func _update_animation(direction: Vector3, was_grounded: bool) -> void:
 	if not is_on_floor():
@@ -138,4 +162,9 @@ func _snap_camera_to_target() -> void:
 	var shoulder_offset: Vector3 = yaw_basis * Vector3.RIGHT * camera_shoulder_offset
 	var initial_offset: Vector3 = camera_rotation * Vector3(0.0, 0.0, camera_distance)
 	camera.global_position = pivot_position + shoulder_offset + initial_offset
+	camera.fov = camera_idle_fov
+	camera_roll = 0.0
 	camera.look_at(camera_look_target, Vector3.UP)
+
+func _smoothing_weight(rate: float, delta: float) -> float:
+	return 1.0 - exp(-maxf(rate, 0.0) * delta)
