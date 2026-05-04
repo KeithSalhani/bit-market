@@ -24,30 +24,30 @@ The current restaurant scene is also staged as a rainy night environment. It use
 
 ## Screenshots
 
-![Main restaurant overview](docs/screenshots/resteraunt.png)
+![Main restaurant overview](readme/docs/screenshots/resteraunt.png)
 Resteraunt overview
 
-![Kitchen stations](docs/screenshots/kitchen.png)
+![Kitchen stations](readme/docs/screenshots/kitchen.png)
 Kitchen
 
-![Register queue and customers](docs/screenshots/queue.png)
+![Register queue and customers](readme/docs/screenshots/queue.png)
 Queue
 
-![Customer eating flow](docs/screenshots/sitting.png)
+![Customer eating flow](readme/docs/screenshots/sitting.png)
 Customers eating
 
 ## Animations
 
-![Worker kitchen loop](docs/animations/kitchen-flow.gif)
+![Worker kitchen loop](readme/docs/animations/kitchen-flow.gif)
 Kitchen
 
-![Burger assembly](docs/animations/burger-prep.gif)
+![Burger assembly](readme/docs/animations/burger-prep.gif)
 Burger assembly
 
-![Fries frying](docs/animations/fryer.gif)
+![Fries frying](readme/docs/animations/fryer.gif)
 Fries frying
 
-[Grill](docs/animations/grill.gif)
+[Grill](readme/docs/animations/grill.gif)
 Grilling
 
 ## Audio
@@ -56,19 +56,19 @@ The game uses imported audio assets for payment, kitchen/station feedback, eatin
 
 Implemented audio assets include:
 
-- [Register payment sound](../assets/audio/applepay.mp3)
-- [Register/kitchen beeping sound](../assets/audio/mcdonalds-beeping-sound.mp3)
-- [Customer eating chips sound](../assets/audio/freesound_community-eating-chips-81092.mp3)
-- [Cooking/fire swoosh sound](../assets/audio/gregorquendel-designed-fire-winds-swoosh-04-116788.mp3)
-- [Restaurant music loop](../assets/audio/sergequadrado-fun-hop-loop-394917.mp3)
-- [Rain ambience](../assets/audio/dragon-studio-gentle-rain-07-437321.mp3)
-- [Vehicle engine loop](../assets/vehicles/Sound%20effects/Car_Engine_Loop.ogg)
-- [Vehicle engine loop 2](../assets/vehicles/Sound%20effects/Car_Engine_Loop_2.ogg)
-- [Vehicle 2 engine loop](../assets/vehicles/Sound%20effects/Car2_Engine_Loop.ogg)
-- [Vehicle 2 engine startup](../assets/vehicles/Sound%20effects/Car2_Engine_Start_Up.ogg)
-- [Vehicle 2 engine turning off](../assets/vehicles/Sound%20effects/Car2_Engine_Turning_Off.ogg)
-- [Vehicle drive/acceleration sound](../assets/vehicles/Sound%20effects/Car_Acceleration.ogg)
-- [Vehicle drive/acceleration sound 2](../assets/vehicles/Sound%20effects/Car_Acceleration_2.ogg)
+- [Register payment sound](assets/audio/applepay.mp3)
+- [Register/kitchen beeping sound](assets/audio/mcdonalds-beeping-sound.mp3)
+- [Customer eating chips sound](assets/audio/freesound_community-eating-chips-81092.mp3)
+- [Cooking/fire swoosh sound](assets/audio/gregorquendel-designed-fire-winds-swoosh-04-116788.mp3)
+- [Restaurant music loop](assets/audio/sergequadrado-fun-hop-loop-394917.mp3)
+- [Rain ambience](assets/audio/dragon-studio-gentle-rain-07-437321.mp3)
+- [Vehicle engine loop](assets/vehicles/Sound%20effects/Car_Engine_Loop.ogg)
+- [Vehicle engine loop 2](assets/vehicles/Sound%20effects/Car_Engine_Loop_2.ogg)
+- [Vehicle 2 engine loop](assets/vehicles/Sound%20effects/Car2_Engine_Loop.ogg)
+- [Vehicle 2 engine startup](assets/vehicles/Sound%20effects/Car2_Engine_Start_Up.ogg)
+- [Vehicle 2 engine turning off](assets/vehicles/Sound%20effects/Car2_Engine_Turning_Off.ogg)
+- [Vehicle drive/acceleration sound](assets/vehicles/Sound%20effects/Car_Acceleration.ogg)
+- [Vehicle drive/acceleration sound 2](assets/vehicles/Sound%20effects/Car_Acceleration_2.ogg)
 
 # Instructions
 
