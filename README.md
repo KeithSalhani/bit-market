@@ -1,3 +1,5 @@
+<img width="1915" height="821" alt="image" src="https://github.com/user-attachments/assets/a068a671-ada6-4415-bb5d-33e6855a970f" />
+
 # Bit Market
 
 Name: Keith Salhani
